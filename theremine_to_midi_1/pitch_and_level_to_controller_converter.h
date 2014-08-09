@@ -6,43 +6,20 @@
 #include <iostream>
 #include <memory>
 
-#include "boost\preprocessor\repetition\repeat.hpp"
-#include "boost\preprocessor\seq\for_each_i.hpp"
-#include "boost\preprocessor\tuple\elem.hpp"
-
-#include "rapidjson\document.h"
-
-#define DEF_VAR(r,suffix,i,elem) BOOST_PP_TUPLE_ELEM(2,0,elem) BOOST_PP_TUPLE_ELEM(2,1,elem) suffix
+//#include "boost\preprocessor\repetition\repeat.hpp"
+//#include "boost\preprocessor\seq\for_each_i.hpp"
+//#include "boost\preprocessor\tuple\elem.hpp"
+//
+//#include "rapidjson\document.h"
+//
+//#define DEF_VAR(r,suffix,i,elem) BOOST_PP_TUPLE_ELEM(2,0,elem) BOOST_PP_TUPLE_ELEM(2,1,elem) suffix
 
 #include <exception>
 
+#include "json_struct_initializer.h"
+
 namespace pltcc
 {
-
-	template <typename T> inline T db_to_lin(T value)
-	{
-		return std::pow(10.0, value/10.0);
-	}
-	template <typename T> inline T lin_to_db(T value)
-	{
-		return 10.0*std::log10(value);
-	}
-
-	template <typename T> class OptionallyLogarithmic
-	{
-		T value;
-	public:
-		operator T() { return GetLinear(); }
-		OptionallyLogarithmic(T _value) { value = _value; }
-		OptionallyLogarithmic() {}
-		T GetLinear() { return value; }
-		T GetDB() { return 10.0*std::log10(value); }
-		void SetLinear(T _value) { value = _value; }
-		void SetDB(T _value) { value = db_to_lin(_value); }
-		void FromRapidJsonObject(rapidjson::Value &obj);
-		OptionallyLogarithmic(rapidjson::Value &obj) { FromRapidJsonObject(obj); }
-	};
-
 #define NORMALIZER_FIELDS \
 	((OptionallyLogarithmic<T>, minval))\
 	((OptionallyLogarithmic<T>, maxval))\

@@ -12,93 +12,39 @@ using namespace pltcc;
 
 #include "rapidjson\filestream.h"
 #include "rapidjson\document.h"
-#include "boost\preprocessor\stringize.hpp"
+//#include "boost\preprocessor\stringize.hpp"
 //#include "boost\preprocessor\control\expr_if.hpp"
-#include "boost\preprocessor\comparison\equal.hpp"
-#include "boost\preprocessor\control\if.hpp"
-#include "boost\preprocessor\control\iif.hpp"
+//#include "boost\preprocessor\comparison\equal.hpp"
+//#include "boost\preprocessor\control\if.hpp"
+//#include "boost\preprocessor\control\iif.hpp"
 
 #include <exception>
 
 using namespace std;
 
-namespace rj
-{
-	using namespace rapidjson;
-}
-
-void GetJsonValue(bool& param, rj::Value &obj)
-{
-	if (!obj.IsBool())
-		throw(std::runtime_error("variable is not bool"));
-	param = obj.GetBool();
-}
-
-void GetJsonValue(int& param, rj::Value &obj)
-{
-	if (!obj.IsInt())
-		throw(std::runtime_error("variable is not int"));
-	param = obj.GetInt();
-}
-
-void GetJsonValue(unsigned char & param, rj::Value &obj)
-{
-	if (!obj.IsInt())
-		throw(std::runtime_error("variable is not int"));
-	param = obj.GetInt();
-}
-
-void GetJsonValue(float& param, rj::Value &obj)
-{
-	if (obj.IsDouble())
-		param = static_cast<float>(obj.GetDouble());
-	else if (obj.IsInt())
-		param = static_cast<float>(obj.GetInt());
-	else
-		throw(std::runtime_error("variable is of wrong type"));
-}
-
-void GetJsonValue(double& param, rj::Value &obj)
-{
-	if (obj.IsDouble())
-		param = obj.GetDouble();
-	else if (obj.IsInt())
-		param = static_cast<double>(obj.GetInt());
-	else
-		throw(std::runtime_error("variable is of wrong type"));
-}
-
-template<typename T> void GetJsonValue(OptionallyLogarithmic<T> &param, rj::Value &obj)
-{
-	param.FromRapidJsonObject(reinterpret_cast<rapidjson::Value&>(obj));
-}
-
-#define EXTRACT_FROM_JSON_OBJ(t,a,obj_name) \
-	try{\
-	GetJsonValue((a), obj_name[BOOST_PP_STRINGIZE(a)]); \
-	}\
-	catch (exception& re) { std::cerr << re.what() << std::endl; throw runtime_error("error initializing parameter: " BOOST_PP_STRINGIZE(a)); }\
-	catch (...) { throw runtime_error("Unknown error parsing parameter: " BOOST_PP_STRINGIZE(a)); }
-#define EXTRACT_FROM_JSON_OBJ_typevar_tuple(r, obj_name, i, typevar_tuple) \
-	EXTRACT_FROM_JSON_OBJ(BOOST_PP_TUPLE_ELEM(2,0,typevar_tuple)\
-	,BOOST_PP_TUPLE_ELEM(2,1,typevar_tuple)\
-	,obj_name)
-#define OUTPUT_FIELD(FIELD) \
-	<< " " BOOST_PP_STRINGIZE(FIELD) " " \
-	<< FIELD
-#define OUTPUT_FIELD_typevar_tuple(r,d,i,typevar_tuple) \
-	OUTPUT_FIELD(BOOST_PP_TUPLE_ELEM(2,1,typevar_tuple))
-#define OUTPUT_ALL(seq_of_typevar_tuples) \
-	BOOST_PP_SEQ_FOR_EACH_I(OUTPUT_FIELD_typevar_tuple, 0\
-	, seq_of_typevar_tuples)
-
-template<typename T> void OptionallyLogarithmic<T>::FromRapidJsonObject(rapidjson::Value &obj)
-{
-	if (obj.HasMember("db"))
-		SetDB(obj["db"].GetDouble());
-	else
-		SetLinear(obj["linear"].GetDouble());
-}
+//namespace rj
+//{
+//	using namespace rapidjson;
+//}
+//
+//#define EXTRACT_FROM_JSON_OBJ(t,a,obj_name) \
+//	try{\
+//	GetJsonValue((a), obj_name[BOOST_PP_STRINGIZE(a)]); \
+//	}\
+//	catch (exception& re) { std::cerr << re.what() << std::endl; throw runtime_error("error initializing parameter: " BOOST_PP_STRINGIZE(a)); }\
+//	catch (...) { throw runtime_error("Unknown error parsing parameter: " BOOST_PP_STRINGIZE(a)); }
+//#define EXTRACT_FROM_JSON_OBJ_typevar_tuple(r, obj_name, i, typevar_tuple) \
+//	EXTRACT_FROM_JSON_OBJ(BOOST_PP_TUPLE_ELEM(2,0,typevar_tuple)\
+//	,BOOST_PP_TUPLE_ELEM(2,1,typevar_tuple)\
+//	,obj_name)
+//#define OUTPUT_FIELD(FIELD) \
+//	<< " " BOOST_PP_STRINGIZE(FIELD) " " \
+//	<< FIELD
+//#define OUTPUT_FIELD_typevar_tuple(r,d,i,typevar_tuple) \
+//	OUTPUT_FIELD(BOOST_PP_TUPLE_ELEM(2,1,typevar_tuple))
+//#define OUTPUT_ALL(seq_of_typevar_tuples) \
+//	BOOST_PP_SEQ_FOR_EACH_I(OUTPUT_FIELD_typevar_tuple, 0\
+//	, seq_of_typevar_tuples)
 
 void PitchLevelToMidi::FromRapidJsonObject(rapidjson::Value& obj)
 {
@@ -106,11 +52,9 @@ void PitchLevelToMidi::FromRapidJsonObject(rapidjson::Value& obj)
 	pitch_converter->FromRapidJsonObject(obj["pitch_converter"]);
 	level_converter.reset(new LinearValueToControllerConverter<float, BYTE>());
 	level_converter->FromRapidJsonObject(obj["level_converter"]);
-	BOOST_PP_SEQ_FOR_EACH_I(\
-		EXTRACT_FROM_JSON_OBJ_typevar_tuple
-		, obj
-		, PitchLevelToMidi_FIELDS)
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(PitchLevelToMidi_FIELDS,obj)
 }
+
 
 void PitchLevelToMidi::FromJsonFile(char* filename)
 {
@@ -131,20 +75,22 @@ void PitchLevelToMidi::FromJsonFile(char* filename)
 template<typename T>
 void pltcc::Normalizer<T>::FromRapidJsonObject(rapidjson::Value &obj)
 {
-	BOOST_PP_SEQ_FOR_EACH_I(\
+	/*BOOST_PP_SEQ_FOR_EACH_I(\
 		EXTRACT_FROM_JSON_OBJ_typevar_tuple
 		, obj
-		, NORMALIZER_FIELDS)
+		, NORMALIZER_FIELDS)*/
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(NORMALIZER_FIELDS,obj)
 }
 
 template<typename T,typename C>
 void ValueToControllerConverter <T, C>::FromRapidJsonObject(rapidjson::Value &obj)
 {
 	Normalizer<T>::FromRapidJsonObject(obj);
-	BOOST_PP_SEQ_FOR_EACH_I(\
+	/*BOOST_PP_SEQ_FOR_EACH_I(\
 		EXTRACT_FROM_JSON_OBJ_typevar_tuple
 		, obj
-		, ValueToControllerConverter_FIELDS)
+		, ValueToControllerConverter_FIELDS)*/
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(ValueToControllerConverter_FIELDS, obj)
 }
 
 template<typename T> 

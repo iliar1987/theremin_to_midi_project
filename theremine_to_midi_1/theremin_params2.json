@@ -1,0 +1,6 @@
+{"send_pitch" : true,
+"send_level" : true,
+"pitch_coupled_controller_number" : 84,
+"level_coupled_controller_number" : 81,
+"level_gate" : 1e-45 ,
+"channel_number" : 0}

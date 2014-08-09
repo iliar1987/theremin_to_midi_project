@@ -1,0 +1,29 @@
+{
+	"pitch_level_to_controller_params" :
+	{
+		"send_pitch" : true,
+		"send_level" : true,
+		"pitch_coupled_controller_number" : 84,
+		"level_coupled_controller_number" : 81,
+		"level_gate" : {"db" : -60},
+		"channel_number" : 0,
+		"pitch_converter" : {
+			"cleave_bottom" : true,
+			"cleave_top" : true,
+			"logarithmic" : true,
+			"maxval" : {"linear":3000},
+			"minval" : {"linear":800},
+			"controller_max" : 127,
+			"controller_min" : 0
+		},
+		"level_converter" : {
+			"cleave_bottom" : true,
+			"cleave_top" : true,
+			"logarithmic" : true,
+			"maxval" : {"db" : -7},
+			"minval" : {"db" : -30},
+			"controller_max" : 127,
+			"controller_min" : 0
+		}
+	}
+ }

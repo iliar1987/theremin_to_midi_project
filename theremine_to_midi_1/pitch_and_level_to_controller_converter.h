@@ -20,6 +20,7 @@
 
 namespace pltcc
 {
+	using namespace rj;
 #define NORMALIZER_FIELDS \
 	((OptionallyLogarithmic<T>, minval))\
 	((OptionallyLogarithmic<T>, maxval))\
@@ -35,7 +36,8 @@ namespace pltcc
 			return (v - a) / (b - a);
 		}
 	public:
-		BOOST_PP_SEQ_FOR_EACH_I(DEF_VAR, ;,NORMALIZER_FIELDS)
+		//BOOST_PP_SEQ_FOR_EACH_I(DEF_VAR, ;,NORMALIZER_FIELDS)
+		DEF_ALL_VARS(NORMALIZER_FIELDS)
 		/*Normalizer(T minval, T maxval, bool logarithmic, bool cleave_top = true, bool cleave_bottom = true)
 			: minval(minval), maxval(maxval), logarithmic(logarithmic), cleave_top(cleave_top), cleave_bottom(cleave_bottom)
 		{}*/
@@ -52,7 +54,8 @@ namespace pltcc
 	template<typename T, typename C> class ValueToControllerConverter : public Normalizer<T>
 	{
 	public:
-		BOOST_PP_SEQ_FOR_EACH_I(DEF_VAR, ;,ValueToControllerConverter_FIELDS)
+		//BOOST_PP_SEQ_FOR_EACH_I(DEF_VAR, ;,ValueToControllerConverter_FIELDS)
+		DEF_ALL_VARS(ValueToControllerConverter_FIELDS)
 		virtual C Convert(T value) = 0;
 		/*ValueToControllerConverter(C controller_min, C controller_max, T minval, T maxval, bool logarithmic, bool cleave_top = true, bool cleave_bottom = true)
 			:Normalizer(minval, maxval, logarithmic, cleave_top, cleave_bottom)
@@ -92,7 +95,7 @@ namespace pltcc
 	{
 		int my_midi_device_number;
 	public:
-		BOOST_PP_SEQ_FOR_EACH_I(DEF_VAR, ;, PitchLevelToMidi_FIELDS)
+		DEF_ALL_VARS(PitchLevelToMidi_FIELDS)
 		/*int channel_number,
 			pitch_coupled_controller_number,
 			level_coupled_controller_number;

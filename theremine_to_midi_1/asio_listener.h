@@ -31,7 +31,7 @@ public:
 	}
 };
 
-#define ASIO_DRIVER_DEFAULT 0
+static const int ASIO_DRIVER_DEFAULT = 0;
 
 class AsioListenerManager
 {

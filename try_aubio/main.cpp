@@ -23,6 +23,28 @@ void print_buf(fvec_t* v)
 	}
 }
 
+#include "src\pitch\pitchfcomb.h"
+#include "src\aubio_priv.h"
+
+typedef struct
+{
+	smpl_t bin;
+	smpl_t db;
+} aubio_fpeak_t;
+
+struct _aubio_pitchfcomb_t
+{
+	uint_t fftSize;
+	uint_t stepSize;
+	uint_t rate;
+	fvec_t *winput;
+	fvec_t *win;
+	cvec_t *fftOut;
+	fvec_t *fftLastPhase;
+	aubio_fft_t *fft;
+};
+
+
 int main()
 {
 	/*HINSTANCE result = LoadLibrary(TEXT("libaubio-4.dll"));
@@ -47,6 +69,8 @@ int main()
 	aubio_pitch_t *pitch_analyzer = new_aubio_pitch("default",
 		winsize,hopsize,sr);
 
+	aubio_pitchfcomb_t* Q = reinterpret_cast<aubio_pitchfcomb_t*>( pitch_analyzer);
+	
 	//fvec_zeros(this_buffer);
 	// create the a-weighting filter
 	

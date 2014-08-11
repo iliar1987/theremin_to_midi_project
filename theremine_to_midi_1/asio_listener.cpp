@@ -36,14 +36,14 @@ typedef long INDEX_TYPE;
 
 //using namespace asio;
 // name of the ASIO device to be used
-#if WINDOWS
+//#if WINDOWS
 //	#define ASIO_DRIVER_NAME    "ASIO Multimedia Driver"
 //	#define ASIO_DRIVER_NAME    "ASIO Sample"
-	#define ASIO_DRIVER_NAME	"Generic Low Latency ASIO Driver"
-#elif MAC
-//	#define ASIO_DRIVER_NAME   	"Apple Sound Manager"
-	#define ASIO_DRIVER_NAME   	"ASIO Sample"
-#endif
+
+//#elif MAC
+////	#define ASIO_DRIVER_NAME   	"Apple Sound Manager"
+//	#define ASIO_DRIVER_NAME   	"ASIO Sample"
+//#endif
 
 enum {
 	// number of input and outputs supported by the host application
@@ -139,6 +139,27 @@ long asioMessages(long selector, long value, void* message, double* opt);
 #include "Lockable.h"
 
 #define DEBUGGING_MULTITHREADING 1
+
+#if ANALYZE_AT_CALLBACK_TIME
+
+Lockable callback_handlers_container_lock;
+
+std::map<int,AsioCallbackHandler*> callback_handlers;
+
+void SetCallbackHandler(int channel_number
+	, AsioCallbackHandler &handler)
+{
+	callback_handlers_container_lock.LockAccess(100);
+	callback_handlers[channel_number] = &handler;
+	callback_handlers_container_lock.UnlockAccess();
+}
+
+#endif
+
+unsigned int AsioListenerManager::GetBufferSize()
+{
+	return asioDriverInfo.preferredSize;
+}
 
 #if USING_CIRCULAR_BUFFERS
 class CircularBufferManager : public virtual Lockable
@@ -292,50 +313,7 @@ void CircularBufferManager::GetLast_N_Samples(APP_SAMPLE_TYPE* out_buff, unsigne
 
 #endif
 
-#if ANALYZE_AT_CALLBACK_TIME
-class PitchAndLevelAnalysis : public virtual Lockable
-{
-	abf::smpl_t last_pitch, last_level;
-	long last_time_milliseconds;
-	abf::AubioPitch *my_aubio_pitch;
-public:
-	PitchAndLevelAnalysis(const AubioPitchDetectionConfigInternal &config);
-	void PerformAnalysis(abf::FVecClass& fvec,long current_time_milliseconds);
-	void GetPitchAndLevel(abf::smpl_t* pitch, abf::smpl_t* level,long* time_milliseconds);
-	~PitchAndLevelAnalysis();
-} * *channel_analyzers;
-
-PitchAndLevelAnalysis::PitchAndLevelAnalysis(const AubioPitchDetectionConfigInternal &config)
-{
-	my_aubio_pitch = new abf::AubioPitch(config.method,
-		config.winsize,
-		config.hopsize,
-		config.sr,
-		config.silence_level);
-	last_time_milliseconds = 0;
-	last_pitch = 0;
-	last_level = 0;
-}
-
-PitchAndLevelAnalysis::~PitchAndLevelAnalysis()
-{
-	delete my_aubio_pitch;
-}
-
-void PitchAndLevelAnalysis::PerformAnalysis(abf::FVecClass &fvec, long current_time_milliseconds)
-{
-	last_pitch = my_aubio_pitch->AubioPitchDo(fvec);
-	last_level = abf::aubio_level_lin(fvec);
-	last_time_milliseconds = current_time_milliseconds;
-}
-
-void PitchAndLevelAnalysis::GetPitchAndLevel (abf::smpl_t *pitch, abf::smpl_t *level, long *time_milliseconds)
-{
-	*pitch = last_pitch; *level = last_level; *time_milliseconds = last_time_milliseconds;
-}
-
-#endif
-
+#if HAVE_TIME_TRACKER
 class LastTimeTracker : public virtual Lockable
 {
 	NANOSECONDS_T last_time;
@@ -344,22 +322,7 @@ public:
 	void SetLastTime(NANOSECONDS_T time) { last_time = time; }
 } last_time_tracker;
 
-#if ANALYZE_AT_CALLBACK_TIME
-bool AsioListenerManager::GetLastAnalysisResults(int channel_number,abf::smpl_t *pitch, abf::smpl_t *level, long *time_milliseconds)
-{
-	PitchAndLevelAnalysis *this_channel_analyzer = channel_analyzers[channel_number];
-
-	if (!this_channel_analyzer->LockAccess(PITCH_ANALYSIS_MUTEX_WAIT_TIME))
-	{
-		std::cerr << "couldn't gain access to aubio pitch analyzer" << std::endl;
-		return false;
-	}
-	this_channel_analyzer->GetPitchAndLevel(pitch, level, time_milliseconds);
-	this_channel_analyzer->UnlockAccess();
-	return true;
-}
 #endif
-
 //----------------------------------------------------------------------------------
 al::InitErrorCode init_asio_static_data (DriverInfo *asioDriverInfo)
 {	// collect the informational data of the driver
@@ -456,7 +419,7 @@ ASIOTime *bufferSwitchTimeInfo(ASIOTime *timeInfo, long index, ASIOBool processN
 #if USING_CIRCULAR_BUFFERS
 	CircularBufferManager::SAMPLE_NUMBER_TYPE this_sample_number;
 #else
-	unsigned int this_sample_number;
+	SAMPLE_NUMBER_TYPE this_sample_number;
 #endif
 	if (timeInfo->timeInfo.flags & kSamplePositionValid)
 	{
@@ -488,6 +451,7 @@ ASIOTime *bufferSwitchTimeInfo(ASIOTime *timeInfo, long index, ASIOBool processN
 	// buffer size in samples
 	long buffSize = asioDriverInfo.preferredSize;
 
+#if HAVE_TIME_TRACKER
 	//lock time tracker for the duration of the processing
 	bool time_locked;
 	if (last_time_tracker.LockAccess(TIME_TRACKER_MUTEX_WAIT_TIME))
@@ -497,17 +461,33 @@ ASIOTime *bufferSwitchTimeInfo(ASIOTime *timeInfo, long index, ASIOBool processN
 	}
 	else
 		time_locked = false;
-
+#endif
 	// perform the processing
 	for (int i = 0; i < asioDriverInfo.inputBuffers + asioDriverInfo.outputBuffers; i++)
 	{
 		if (asioDriverInfo.bufferInfos[i].isInput == ASIOTrue)
 		{
 			in_counter++;
+			
+#if ANALYZE_AT_CALLBACK_TIME
+			ah::GenericBuffer* gbuff = ah::NewGenericBufferFromASIO_Sample_T(
+				asioDriverInfo.bufferInfos[i].buffers[index],
+				asioDriverInfo.channelInfos[i].type);
+			callback_handlers_container_lock.LockAccess();
+			if (callback_handlers.find(i) != callback_handlers.end())
+			{
+				callback_handlers[i]->AsioCallback(
+					(unsigned long)this_time / 1000000,
+					this_sample_number,
+					buffSize,
+					*gbuff);
+				callback_handlers_container_lock.UnlockAccess();
+			}
+#endif
+#if USING_CIRCULAR_BUFFERS
 			std::shared_ptr<ah::GenericBuffer> gbuff = ah::NewGenericBufferFromASIO_Sample_T(
 				asioDriverInfo.bufferInfos[i].buffers[index],
 				asioDriverInfo.channelInfos[i].type);
-#if USING_CIRCULAR_BUFFERS
 			CircularBufferManager* this_circular_buffer_manager = these_circular_buffer_managers[i];
 			if (!this_circular_buffer_manager->LockAccess(CIRC_BUFFER_MUTEX_WAIT_TIME)) //milliseconds
 			{
@@ -582,8 +562,10 @@ ASIOTime *bufferSwitchTimeInfo(ASIOTime *timeInfo, long index, ASIOBool processN
 #endif
 	}
 
+#if HAVE_TIME_TRACKER
 	if ( time_locked )
 		last_time_tracker.UnlockAccess();
+#endif
 	// finally if the driver supports the ASIOOutputReady() optimization, do it here, all data are in place
 	if (asioDriverInfo.postOutput)
 		ASIOOutputReady();
@@ -657,6 +639,7 @@ long asioMessages(long selector, long value, void* message, double* opt)
 			// Reset the driver is done by completely destruct is. I.e. ASIOStop(), ASIODisposeBuffers(), Destruction
 			// Afterwards you initialize the driver again.
 			std::cerr << "reset request" << std::endl;
+			//throw(ASIO_ResetRequest_Exception());
 			//asioDriverInfo.stopped;  // In this sample the processing will just stop
 			ret = 1L;
 			break;
@@ -795,6 +778,8 @@ void al::AsioListenerManager::StopListeningAndTerminate() { already_listening = 
 
 al::AsioListenerManager::~AsioListenerManager() {StopListeningAndTerminate();}
 
+#if HAVE_TIME_TRACKER
+
 unsigned int al::AsioListenerManager::GetYoungestSampleTimeMilliseconds()
 {
 	//ASIOTime time;
@@ -816,6 +801,7 @@ unsigned int al::AsioListenerManager::GetYoungestSampleTimeMilliseconds()
 	//std::cerr << retvalue << std::endl;
 	return retvalue;
 }
+#endif
 
 #if USING_CIRCULAR_BUFFERS
 void al::AsioListenerManager::GetLast_N_Samples(unsigned int channel_number, 
@@ -888,7 +874,7 @@ void al::AsioListenerManager::StartListening(double buffer_time_length,char* asi
 		throw ASIO_Exception(0,"already listening");
 	}
 	if ( asio_driver_name == ASIO_DRIVER_DEFAULT )
-		asio_driver_name = ASIO_DRIVER_NAME;
+		asio_driver_name = ASIO_DEFAULT_DRIVER_NAME;
 	if (!loadAsioDriver (asio_driver_name))
 	{
 		std::cerr<<"Couldn't load driver"<<std::endl;

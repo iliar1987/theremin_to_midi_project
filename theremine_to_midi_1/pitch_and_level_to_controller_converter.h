@@ -130,9 +130,9 @@ namespace pltcc
 	void InitializeDefaultPitchLevelToMidi(PitchLevelToMidi& p);
 }
 
-#if !PLTCC_H_DONT_CLEANUP
-#undef DEF_VAR
-#undef NORMALIZER_FIELDS
-#undef ValueToControllerConverter_FIELDS
-#undef PitchLevelToMidi_FIELDS
-#endif
+//#if !PLTCC_H_DONT_CLEANUP
+//#undef DEF_VAR
+//#undef NORMALIZER_FIELDS
+//#undef ValueToControllerConverter_FIELDS
+//#undef PitchLevelToMidi_FIELDS
+//#endif

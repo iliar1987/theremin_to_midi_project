@@ -7,6 +7,8 @@
 #include "rapidjson\filestream.h"
 #include "rapidjson\document.h"
 
+#include <string>
+
 // example list of typevar tuples:
 // #define MY_FIELDS ((bool,x))((int,y))
 
@@ -90,5 +92,6 @@ namespace rj {
 	void GetJsonValue(unsigned char & param, rj::Value &obj);
 	void GetJsonValue(float& param, rj::Value &obj);
 	void GetJsonValue(double& param, rj::Value &obj);
+	void GetJsonValue(std::string& param, rj::Value &obj);
 	template<typename T> void GetJsonValue(OptionallyLogarithmic<T> &param, rj::Value &obj);
 }

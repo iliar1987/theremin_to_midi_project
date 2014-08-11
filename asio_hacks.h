@@ -108,7 +108,13 @@ public:
 	}
 };
 
-std::unique_ptr<GenericBuffer> NewGenericBufferFromASIO_Sample_T(void* buff,::ASIOSampleType asio_ST_code)
+#define USING_FANCY_POINTERS 0
+
+#if USING_FANCY_POINTERS
+std::unique_ptr<GenericBuffer> NewGenericBufferFromASIO_Sample_T(void* buff, ::ASIOSampleType asio_ST_code)
+#else
+GenericBuffer* NewGenericBufferFromASIO_Sample_T(void* buff, ::ASIOSampleType asio_ST_code)
+#endif
 {
 	GenericBuffer* ret_p;
 #ifdef AH_DEBUG
@@ -138,7 +144,11 @@ std::unique_ptr<GenericBuffer> NewGenericBufferFromASIO_Sample_T(void* buff,::AS
 		throw("Unsupported data type");
 	}
 	
+#if USING_FANCY_POINTERS
 	return std::unique_ptr<GenericBuffer>(ret_p);
+#else
+	return ret_p;
+#endif
 }
 
 inline double VariableTypeBuffer<INT16>::GetNormalizationConstant() {return 1.0/MAXINT16;}

@@ -22,10 +22,73 @@ using namespace pltcc;
 
 #include "json_struct_initializer.h"
 
+#include "asio_hacks.h"
+
+#include "Lockable.h"
+
 abf::AubioPitch* aubio_pitch_p=0;
 abf::FVecClass* fvec_p=0;
 al::AsioListenerManager aslt;
+
+//double sample_rate;
 pltcc::PitchLevelToMidi * p_t=0;
+bool should_stop = false;
+
+#define GENERAL_PARAMS \
+	((rj::OptionallyLogarithmic<abf::smpl_t>, pitch_detection_silence_level))\
+	((double, preffered_window_size_seconds))\
+	((std::string, pitch_detection_method))
+struct GeneralParamsStruct
+{
+	DEF_ALL_VARS(GENERAL_PARAMS)
+	abf::uint_t actual_window_size;
+	unsigned long buffer_size;
+	double sample_rate;
+	void SetParamsFromJsonFile(char *json_file_name);
+} general_params;
+
+abf::smpl_t current_pitch=0;
+abf::smpl_t current_level=0;
+unsigned long last_time_milliseconds=0;
+al::SAMPLE_NUMBER_TYPE last_sample_number=0;
+
+static const int PITCH_ANALYSIS_MUTEX_WAIT_TIME = 10;
+Lockable analysis_locker;
+
+class PitchCalculationCallbackHandler : public al::AsioCallbackHandler
+{
+public:
+	void AsioCallback(unsigned long time_milliseconds
+		, unsigned long current_sample_number
+		, unsigned long number_of_samples_in_buffer
+		, ah::GenericBuffer &buffer);
+} pitch_calculation_callback_handler;
+
+void PitchCalculationCallbackHandler::AsioCallback(unsigned long time_milliseconds
+	, unsigned long current_sample_number
+	, unsigned long number_of_samples_in_buffer
+	, ah::GenericBuffer &gbuffer)
+{
+	if (number_of_samples_in_buffer != general_params.buffer_size)
+	{
+		std::cerr << "buffer size mismatch" << std::endl;
+		throw std::runtime_error("buffer size mismatch");
+	}
+	analysis_locker.LockAccess(PITCH_ANALYSIS_MUTEX_WAIT_TIME);
+	abf::smpl_t *buff = fvec_p->GetBuff();
+	double normalization_constant = gbuffer.GetNormalizationConstant();
+	for (int i = 0; i < general_params.buffer_size; i++)
+	{
+		buff[i] = static_cast<abf::smpl_t>(
+			static_cast<double>((*gbuffer.GetElement(i)))
+			* normalization_constant);
+	}
+	current_pitch = aubio_pitch_p->AubioPitchDo(*fvec_p);
+	current_level = aubio_pitch_p->GetLevel();
+	last_time_milliseconds = time_milliseconds;
+	last_sample_number=current_sample_number;
+	analysis_locker.UnlockAccess();
+}
 
 void DestroyAll()
 {
@@ -33,9 +96,6 @@ void DestroyAll()
 	if (fvec_p) delete fvec_p;
 	if (p_t) delete(p_t);
 }
-
-bool should_stop = false;
-float silence_level;
 
 #include <vector>
 
@@ -75,7 +135,21 @@ public:
 	}
 } key_stroke_tracker;
 
-void SetParamsFromJsonFile(char *json_file_name)
+void InitializePitchDetection(GeneralParamsStruct &params)
+{
+	params.actual_window_size = 
+		abf::FloorClosestMultipleOfTwo(
+		params.preffered_window_size_seconds * params.sample_rate);
+	while (params.actual_window_size < params.buffer_size)
+		params.actual_window_size *= 2;
+	aubio_pitch_p = new abf::AubioPitch(params.pitch_detection_method
+		, params.actual_window_size
+		, params.buffer_size
+		, params.sample_rate
+		, params.pitch_detection_silence_level.GetDB());
+}
+
+void GeneralParamsStruct::SetParamsFromJsonFile(char *json_file_name)
 {
 	FILE* f;
 	errno_t err = fopen_s(&f, json_file_name, "r");
@@ -86,7 +160,7 @@ void SetParamsFromJsonFile(char *json_file_name)
 	rj::FileStream fs(f);
 	rj::Document jsonobj;
 	jsonobj.ParseStream(fs);
-	EXTRACT_FROM_JSON_OBJ(float, silence_level, jsonobj)
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(GENERAL_PARAMS,jsonobj)
 }
 
 int main(int argc, char* argv[])
@@ -98,19 +172,21 @@ int main(int argc, char* argv[])
 	}
 	char* parameter_file_name = argv[1];
 
-	SetParamsFromJsonFile(parameter_file_name);
+	general_params.SetParamsFromJsonFile(parameter_file_name);
 	std::cout.precision(3);
 	std::cout.setf(std::ios::fixed, std::ios::floatfield);
 	aslt.StartListening(1.0, al::ASIO_DRIVER_DEFAULT, true);
 	//aslt.PrintDriverInformation();
-	unsigned int sample_rate = aslt.GetSampleRate();
-	std::cout << "sample rate: " << sample_rate
+	general_params.sample_rate = aslt.GetSampleRate();
+	general_params.buffer_size = aslt.GetBufferSize();
+	std::cout << "sample rate: " << general_params.sample_rate
 		<< "\tsamples per 100 millisec: " << aslt.NumberOfSamplesPerDeltaT(0.1)
 #if USING_CIRCULAR_BUFFERS
 		<< "\nCircular buffer size: " << aslt.GetCircBufferSize()
 #endif
 		<< std::endl;
-	const unsigned int sleep_period = 50;
+	unsigned int sleep_period = 50;
+	InitializePitchDetection(general_params);
 #if USING_CIRCULAR_BUFFERS
 	assert(sizeof(APP_SAMPLE_TYPE) == sizeof(abf::smpl_t));
 //#endif
@@ -146,7 +222,6 @@ int main(int argc, char* argv[])
 #endif
 	
 	PitchLevelToMidi &p = *(p_t = new PitchLevelToMidi());
-	p.Start(1);
 	//InitializeDefaultPitchLevelToMidi(p);
 	try{
 		p.FromJsonFile(parameter_file_name);
@@ -156,14 +231,20 @@ int main(int argc, char* argv[])
 		std::cerr << re.what() << std::endl;
 		return 2;
 	}
+	p.Start(1);
 	//for (int i = 0; i < 50; i++)
+	al::SetCallbackHandler(0, pitch_calculation_callback_handler);
 	while (1)
 	{
 		Sleep(sleep_period);
+		analysis_locker.LockAccess();
 		float pitch;
-		float level_db_spl, level_linear;
+		float level_linear = current_level;
+		float level_db_spl = lin_to_db(level_linear);
+		unsigned long time_milliseconds = last_time_milliseconds;
+		analysis_locker.UnlockAccess();
 #if USING_CIRCULAR_BUFFERS
-		long last_time_milliseconds;
+		long last_time_milliseconds 
 		unsigned int samples_retrieved;
 		aslt.GetLast_N_Samples(0, fvec.GetBuff(), fvec.GetLength(), &samples_retrieved, &last_time_milliseconds);
 		std::cout << "\n";
@@ -184,7 +265,7 @@ int main(int argc, char* argv[])
 		printf("\tLevel(l): %.3g",level_linear);
 		//std::cout.unsetf(std::ios::scientific);
 #if RECORDING
-		outf << last_time_milliseconds
+		outf << time_milliseconds
 			<< "," << pitch
 			<< "," << level_db_spl
 			<< "," << level_linear

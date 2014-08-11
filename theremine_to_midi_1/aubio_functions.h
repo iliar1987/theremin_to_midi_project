@@ -7,6 +7,7 @@ namespace abf{
 #include "build\src\config.h"
 
 #include "src/aubio.h"
+
 //#include "src/musicutils.h"
 	
 	const int number_of_pitch_methods = 6;
@@ -42,6 +43,7 @@ namespace abf{
 	{
 		aubio_pitch_t* my_pitch=0;
 	public:
+		smpl_t GetLevel();
 		AubioPitch(char *method,
 			uint_t winsize, uint_t hopsize, uint_t sr,
 			float silence_level);

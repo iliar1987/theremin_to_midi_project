@@ -50,6 +50,18 @@ template<typename T> void rj::GetJsonValue(rj::OptionallyLogarithmic<T> &param, 
 	param.FromRapidJsonObject(reinterpret_cast<rapidjson::Value&>(obj));
 }
 
+void rj::GetJsonValue(std::string& param, rj::Value &obj)
+{
+	if (!obj.IsString())
+	{
+
+	}
+	int len = obj.GetStringLength();
+	const char *str = obj.GetString();
+	param.replace(0,len,str);
+	delete[] str;
+}
+
 
 template<typename T> void rj::OptionallyLogarithmic<T>::FromRapidJsonObject(rj::Value &obj)
 {

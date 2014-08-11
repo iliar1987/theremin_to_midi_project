@@ -1,3 +1,5 @@
+#pragma once
+
 #include "boost\preprocessor\repetition\repeat.hpp"
 #include "boost\preprocessor\seq\for_each_i.hpp"
 #include "boost\preprocessor\tuple\elem.hpp"
@@ -28,10 +30,10 @@
 	try{\
 	GetJsonValue((a), obj_name[BOOST_PP_STRINGIZE(a)]); \
 	}\
-	catch (exception& re) \
+	catch (std::exception& re) \
 		{ std::cerr << re.what() << std::endl; \
-		throw runtime_error("error initializing parameter: " BOOST_PP_STRINGIZE(a)); }\
-	catch (...) { throw runtime_error("Unknown error parsing parameter: " BOOST_PP_STRINGIZE(a)); }
+		throw std::runtime_error("error initializing parameter: " BOOST_PP_STRINGIZE(a)); }\
+	catch (...) { throw std::runtime_error("Unknown error parsing parameter: " BOOST_PP_STRINGIZE(a)); }
 
 #define EXTRACT_FROM_JSON_OBJ_typevar_tuple(r, obj_name, i, typevar_tuple) \
 	EXTRACT_FROM_JSON_OBJ(BOOST_PP_TUPLE_ELEM(2, 0, typevar_tuple)\

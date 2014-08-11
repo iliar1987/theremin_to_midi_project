@@ -43,11 +43,20 @@ namespace abf{
 		aubio_pitch_t* my_pitch=0;
 	public:
 		AubioPitch(char *method,
-			uint_t winsize, uint_t hopsize, uint_t sr);
+			uint_t winsize, uint_t hopsize, uint_t sr,
+			float silence_level);
 		~AubioPitch();
 		float AubioPitchDo(fvec_t* buffer);
 		float AubioPitchDo(FVecClass &fvec) { return AubioPitchDo(fvec.GetMyFVecObject()); }
 		aubio_pitch_t* GetMyPitchObject() { return my_pitch; }
+		void SetSilence(float silence_level)
+		{
+			aubio_pitch_set_silence(my_pitch, silence_level);
+		}
+		float GetSilence()
+		{
+			return aubio_pitch_get_silence(my_pitch);
+		}
 	};
 
 	inline smpl_t aubio_db_spl(FVecClass &fvec) { return aubio_db_spl(fvec.GetMyFVecObject()); }

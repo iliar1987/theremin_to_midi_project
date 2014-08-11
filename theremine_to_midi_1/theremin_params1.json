@@ -1,11 +1,11 @@
 {
+	"pitch_detection_silence_level" : {"db" : -60},
 	"pitch_level_to_controller_params" :
 	{
 		"send_pitch" : true,
 		"send_level" : true,
 		"pitch_coupled_controller_number" : 84,
 		"level_coupled_controller_number" : 81,
-		"level_gate" : {"db" : -60},
 		"channel_number" : 0,
 		"pitch_converter" : {
 			"cleave_bottom" : true,

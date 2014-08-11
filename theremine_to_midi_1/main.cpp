@@ -18,6 +18,9 @@
 using namespace pltcc;
 
 #include <memory>
+#include <exception>
+
+#include "json_struct_initializer.h"
 
 abf::AubioPitch* aubio_pitch_p=0;
 abf::FVecClass* fvec_p=0;
@@ -32,6 +35,7 @@ void DestroyAll()
 }
 
 bool should_stop = false;
+float silence_level;
 
 #include <vector>
 
@@ -71,6 +75,20 @@ public:
 	}
 } key_stroke_tracker;
 
+void SetParamsFromJsonFile(char *json_file_name)
+{
+	FILE* f;
+	errno_t err = fopen_s(&f, json_file_name, "r");
+	if (err)
+	{
+		std::cerr << "error opening file " << err << std::endl;
+	}
+	rj::FileStream fs(f);
+	rj::Document jsonobj;
+	jsonobj.ParseStream(fs);
+	EXTRACT_FROM_JSON_OBJ(float, silence_level, jsonobj)
+}
+
 int main(int argc, char* argv[])
 {
 	if (argc < 2)
@@ -80,28 +98,41 @@ int main(int argc, char* argv[])
 	}
 	char* parameter_file_name = argv[1];
 
+	SetParamsFromJsonFile(parameter_file_name);
 	std::cout.precision(3);
 	std::cout.setf(std::ios::fixed, std::ios::floatfield);
-	aslt.StartListening(1.0, 0, true);
+	aslt.StartListening(1.0, al::ASIO_DRIVER_DEFAULT, true);
 	//aslt.PrintDriverInformation();
 	unsigned int sample_rate = aslt.GetSampleRate();
 	std::cout << "sample rate: " << sample_rate
 		<< "\tsamples per 100 millisec: " << aslt.NumberOfSamplesPerDeltaT(0.1)
+#if USING_CIRCULAR_BUFFERS
 		<< "\nCircular buffer size: " << aslt.GetCircBufferSize()
+#endif
 		<< std::endl;
 	const unsigned int sleep_period = 50;
+#if USING_CIRCULAR_BUFFERS
 	assert(sizeof(APP_SAMPLE_TYPE) == sizeof(abf::smpl_t));
+//#endif
 	const unsigned int buff_size =
 		aslt.NumberOfSamplesPerDeltaT(sleep_period / 1000.0);
 	//APP_SAMPLE_TYPE buff[buff_size];
+	
+//#if USING_CIRCULAR_BUFFERS
 	abf::FVecClass& fvec = *(
 		fvec_p = new abf::FVecClass(buff_size));
 	unsigned int win_size = abf::FloorClosestMultipleOfTwo(buff_size * 2);
 	char method[] = "fcomb";
-
+	
 	abf::AubioPitch& aubio_pitch = *(
-		aubio_pitch_p = new abf::AubioPitch(method, win_size, buff_size - 1, sample_rate)
+		aubio_pitch_p = new 
+			abf::AubioPitch(
+			method, win_size, buff_size
+			, sample_rate
+			,silence_level)
 		);
+#endif
+
 #define RECORDING 0
 #if RECORDING
 	std::ofstream outf("pitch_recognition_output3.txt",std::ios_base::app);
@@ -129,17 +160,20 @@ int main(int argc, char* argv[])
 	while (1)
 	{
 		Sleep(sleep_period);
+		float pitch;
+		float level_db_spl, level_linear;
+#if USING_CIRCULAR_BUFFERS
 		long last_time_milliseconds;
 		unsigned int samples_retrieved;
 		aslt.GetLast_N_Samples(0, fvec.GetBuff(), fvec.GetLength(), &samples_retrieved, &last_time_milliseconds);
 		std::cout << "\n";
 		std::cout << (double)last_time_milliseconds / 1000.0
 			<< "\t" << samples_retrieved;
-		float pitch;
+		
 		pitch = aubio_pitch.AubioPitchDo(fvec);
-		float level_db_spl, level_linear;
 		level_db_spl = abf::aubio_db_spl(fvec);
 		level_linear = abf::aubio_level_lin(fvec);
+#endif
 		std::cout << "\t" << "Pitch: "
 			<< pitch;
 		std::cout << "\t" << "Level(db): "

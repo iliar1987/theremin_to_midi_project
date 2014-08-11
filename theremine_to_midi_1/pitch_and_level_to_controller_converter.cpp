@@ -146,7 +146,8 @@ void PitchLevelToMidi::ConvertAndSend(float pitch, float level)
 	
 	if (pitch //pitch may be 0 if detection failed
 		&& send_pitch
-			&& level >= level_gate)
+			//&& level >= level_gate
+			)
 		mos.SendController(pitch_coupled_controller_number
 			, c_pitch, channel_number);
 	if (send_level)
@@ -183,7 +184,7 @@ void pltcc::InitializeDefaultPitchLevelToMidi(PitchLevelToMidi& p)
 	p.send_level = true;
 	p.send_pitch = true;
 
-	p.level_gate = db_to_lin(-45.0);
+	//p.level_gate = db_to_lin(-45.0);
 	p.level_coupled_controller_number = 81;
 	p.pitch_coupled_controller_number = 84;
 	p.channel_number = 0;

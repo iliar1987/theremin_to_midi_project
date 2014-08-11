@@ -84,12 +84,12 @@ namespace pltcc
 	typedef LinearValueToControllerConverter<float, BYTE> StandardTypeLinearConverter;
 
 #define PitchLevelToMidi_FIELDS \
-	((OptionallyLogarithmic<float>,level_gate))\
 	((int,channel_number))\
 	((int, pitch_coupled_controller_number))\
 	((int, level_coupled_controller_number))\
 	((bool,send_pitch))\
-	((bool,send_level))
+	((bool,send_level))\
+	//((OptionallyLogarithmic<float>, level_gate))
 
 	class PitchLevelToMidi
 	{

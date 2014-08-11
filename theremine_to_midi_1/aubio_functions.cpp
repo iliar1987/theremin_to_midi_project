@@ -28,11 +28,13 @@ void abf::print_buf(fvec_t* v,std::ostream &output_stream)
 }
 
 abf::AubioPitch::AubioPitch(char *method,
-	uint_t winsize, uint_t hopsize, uint_t sr)
+	uint_t winsize, uint_t hopsize, uint_t sr,
+	float silence_level)
 {
 	try
 	{
 		my_pitch = new_aubio_pitch(method, winsize, hopsize, sr);
+		SetSilence(silence_level);
 	}
 	catch (...) { my_pitch = 0; }
 }

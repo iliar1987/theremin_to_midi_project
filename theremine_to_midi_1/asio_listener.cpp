@@ -146,8 +146,8 @@ Lockable callback_handlers_container_lock;
 
 std::map<int,AsioCallbackHandler*> callback_handlers;
 
-void SetCallbackHandler(int channel_number
-	, AsioCallbackHandler &handler)
+void al::SetCallbackHandler(int channel_number
+	, al::AsioCallbackHandler &handler)
 {
 	callback_handlers_container_lock.LockAccess(100);
 	callback_handlers[channel_number] = &handler;
@@ -473,7 +473,7 @@ ASIOTime *bufferSwitchTimeInfo(ASIOTime *timeInfo, long index, ASIOBool processN
 			ah::GenericBuffer* gbuff = ah::NewGenericBufferFromASIO_Sample_T(
 				asioDriverInfo.bufferInfos[i].buffers[index],
 				asioDriverInfo.channelInfos[i].type);
-			callback_handlers_container_lock.LockAccess();
+			callback_handlers_container_lock.LockAccess(LARGE_MUTEX_WAIT_TIME);
 			if (callback_handlers.find(i) != callback_handlers.end())
 			{
 				callback_handlers[i]->AsioCallback(
@@ -841,7 +841,7 @@ double al::AsioListenerManager::GetSampleRate()
 
 unsigned int al::AsioListenerManager::NumberOfSamplesPerDeltaT(double delta_t)
 {
-	return delta_t * GetSampleRate();
+	return static_cast<unsigned int>(delta_t * GetSampleRate());
 }
 
 #if USING_CIRCULAR_BUFFERS

@@ -9,6 +9,8 @@
 #define APP_SAMPLE_TYPE float
 #endif
 
+#include "asio_hacks.h"
+
 
 #include <exception>
 #include <string>
@@ -24,7 +26,7 @@ namespace al{
 #include "asio.h"
 #endif
 
-	static const char * const ASIO_DEFAULT_DRIVER_NAME = "Generic Low Latency ASIO Driver";
+	static char * const ASIO_DEFAULT_DRIVER_NAME = "Generic Low Latency ASIO Driver";
 
 	typedef unsigned long SAMPLE_NUMBER_TYPE;
 #if ANALYZE_AT_CALLBACK_TIME
@@ -79,7 +81,7 @@ class ASIO_ResetRequest_Exception : ASIO_DriverError
 {
 public:
 	ASIO_ResetRequest_Exception()
-		:ASIO_DriverError("Reset request by driver");
+		:ASIO_DriverError("Reset request by driver")
 	{}
 };
 
@@ -87,6 +89,8 @@ static char * const ASIO_DRIVER_DEFAULT = 0;
 
 static const int CIRC_BUFFER_MUTEX_WAIT_TIME = 10;
 static const int TIME_TRACKER_MUTEX_WAIT_TIME = 10;
+static const int SMALL_MUTEX_WAIT_TIME = 10;
+static const int LARGE_MUTEX_WAIT_TIME = 100;
 
 class AsioListenerManager
 {

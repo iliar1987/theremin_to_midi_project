@@ -1,6 +1,6 @@
 #include "windows.h"
 
-#define DONT_POLLUTE_ME_WITH_ASIOH 1
+#define DONT_POLLUTE_ME_WITH_ASIOH 0
 #include "asio_listener.h"
 
 #include <iostream>
@@ -77,7 +77,7 @@ void PitchCalculationCallbackHandler::AsioCallback(unsigned long time_millisecon
 	analysis_locker.LockAccess(PITCH_ANALYSIS_MUTEX_WAIT_TIME);
 	abf::smpl_t *buff = fvec_p->GetBuff();
 	double normalization_constant = gbuffer.GetNormalizationConstant();
-	for (int i = 0; i < general_params.buffer_size; i++)
+	for (unsigned int i = 0; i < general_params.buffer_size; i++)
 	{
 		buff[i] = static_cast<abf::smpl_t>(
 			static_cast<double>((*gbuffer.GetElement(i)))
@@ -142,7 +142,7 @@ void InitializePitchDetection(GeneralParamsStruct &params)
 		params.preffered_window_size_seconds * params.sample_rate);
 	while (params.actual_window_size < params.buffer_size)
 		params.actual_window_size *= 2;
-	aubio_pitch_p = new abf::AubioPitch(params.pitch_detection_method
+	aubio_pitch_p = new abf::AubioPitch(const_cast<char*>(params.pitch_detection_method.c_str())
 		, params.actual_window_size
 		, params.buffer_size
 		, params.sample_rate
@@ -237,8 +237,8 @@ int main(int argc, char* argv[])
 	while (1)
 	{
 		Sleep(sleep_period);
-		analysis_locker.LockAccess();
-		float pitch;
+		analysis_locker.LockAccess(sleep_period/2);
+		float pitch = current_pitch;
 		float level_linear = current_level;
 		float level_db_spl = lin_to_db(level_linear);
 		unsigned long time_milliseconds = last_time_milliseconds;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "asio.h"
+
 #include <memory>
 
 #ifdef AH_DEBUG
@@ -113,7 +115,7 @@ public:
 #if USING_FANCY_POINTERS
 std::unique_ptr<GenericBuffer> NewGenericBufferFromASIO_Sample_T(void* buff, ::ASIOSampleType asio_ST_code)
 #else
-GenericBuffer* NewGenericBufferFromASIO_Sample_T(void* buff, ::ASIOSampleType asio_ST_code)
+static GenericBuffer* NewGenericBufferFromASIO_Sample_T(void* buff, ::ASIOSampleType asio_ST_code)
 #endif
 {
 	GenericBuffer* ret_p;

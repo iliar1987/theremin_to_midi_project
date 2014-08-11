@@ -481,8 +481,8 @@ ASIOTime *bufferSwitchTimeInfo(ASIOTime *timeInfo, long index, ASIOBool processN
 					this_sample_number,
 					buffSize,
 					*gbuff);
-				callback_handlers_container_lock.UnlockAccess();
 			}
+			callback_handlers_container_lock.UnlockAccess();
 #endif
 #if USING_CIRCULAR_BUFFERS
 			std::shared_ptr<ah::GenericBuffer> gbuff = ah::NewGenericBufferFromASIO_Sample_T(

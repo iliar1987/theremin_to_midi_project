@@ -1,6 +1,7 @@
 {
+	"pitch_detection_method" : "fcomb",
 	"pitch_detection_silence_level" : {"db" : -60},
-	"preffered_window_size_seconds" : 0.2,
+	"preffered_window_size_seconds" : 0.3,
 	"pitch_level_to_controller_params" :
 	{
 		"send_pitch" : true,

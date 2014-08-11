@@ -54,12 +54,11 @@ void rj::GetJsonValue(std::string& param, rj::Value &obj)
 {
 	if (!obj.IsString())
 	{
-
+		throw std::runtime_error("variable is of wrong type");
 	}
 	int len = obj.GetStringLength();
 	const char *str = obj.GetString();
 	param.replace(0,len,str);
-	delete[] str;
 }
 
 

@@ -47,6 +47,21 @@ struct GeneralParamsStruct
 	void SetParamsFromJsonFile(char *json_file_name);
 } general_params;
 
+void GeneralParamsStruct::SetParamsFromJsonFile(char *json_file_name)
+{
+	FILE* f;
+	errno_t err = fopen_s(&f, json_file_name, "r");
+	if (err)
+	{
+		std::cerr << "error opening file " << err << std::endl;
+	}
+	rj::FileStream fs(f);
+	rj::Document jsonobj;
+	jsonobj.ParseStream(fs);
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(GENERAL_PARAMS, jsonobj)
+}
+
+
 abf::smpl_t current_pitch=0;
 abf::smpl_t current_level=0;
 unsigned long last_time_milliseconds=0;
@@ -74,6 +89,8 @@ void PitchCalculationCallbackHandler::AsioCallback(unsigned long time_millisecon
 		std::cerr << "buffer size mismatch" << std::endl;
 		throw std::runtime_error("buffer size mismatch");
 	}
+	if (!fvec_p)
+		return;
 	analysis_locker.LockAccess(PITCH_ANALYSIS_MUTEX_WAIT_TIME);
 	abf::smpl_t *buff = fvec_p->GetBuff();
 	double normalization_constant = gbuffer.GetNormalizationConstant();
@@ -137,6 +154,7 @@ public:
 
 void InitializePitchDetection(GeneralParamsStruct &params)
 {
+	fvec_p = new abf::FVecClass(params.buffer_size);
 	params.actual_window_size = 
 		abf::FloorClosestMultipleOfTwo(
 		params.preffered_window_size_seconds * params.sample_rate);
@@ -147,20 +165,6 @@ void InitializePitchDetection(GeneralParamsStruct &params)
 		, params.buffer_size
 		, params.sample_rate
 		, params.pitch_detection_silence_level.GetDB());
-}
-
-void GeneralParamsStruct::SetParamsFromJsonFile(char *json_file_name)
-{
-	FILE* f;
-	errno_t err = fopen_s(&f, json_file_name, "r");
-	if (err)
-	{
-		std::cerr << "error opening file " << err << std::endl;
-	}
-	rj::FileStream fs(f);
-	rj::Document jsonobj;
-	jsonobj.ParseStream(fs);
-	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(GENERAL_PARAMS,jsonobj)
 }
 
 int main(int argc, char* argv[])
@@ -234,6 +238,7 @@ int main(int argc, char* argv[])
 	p.Start(1);
 	//for (int i = 0; i < 50; i++)
 	al::SetCallbackHandler(0, pitch_calculation_callback_handler);
+	std::cout << std::endl;
 	while (1)
 	{
 		Sleep(sleep_period);
@@ -255,6 +260,8 @@ int main(int argc, char* argv[])
 		level_db_spl = abf::aubio_db_spl(fvec);
 		level_linear = abf::aubio_level_lin(fvec);
 #endif
+		std::cout << "\r";
+		std::cout << (double)last_time_milliseconds / 1000.0;
 		std::cout << "\t" << "Pitch: "
 			<< pitch;
 		std::cout << "\t" << "Level(db): "

@@ -54,6 +54,8 @@ namespace midis
 		midi_err_t CloseStream();
 		virtual midi_err_t SendController(controller_num_t controller_num,
 			controller_val_t controller_val, BYTE channel_number);
+		virtual midi_err_t SendPitchBend(short pitchbend_value,
+			BYTE channel_number);
 		MidiOutStream();
 		virtual ~MidiOutStream();
 		

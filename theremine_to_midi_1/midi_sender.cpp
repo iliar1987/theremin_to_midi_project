@@ -95,6 +95,30 @@ midi_err_t midis::MidiOutStream::StopStream()
 midis::MidiOutStream::MidiOutStream() {}
 midis::MidiOutStream::~MidiOutStream() { CloseStream(); }
 
+midi_err_t midis::MidiOutStream::SendPitchBend(
+	short pitchbend_value,
+	BYTE channel_number)
+{
+	midi_err_t err;
+
+	//A better solution is the ShortMsg facility
+	union {
+		DWORD dwData;
+		BYTE bData[4];
+	} u;
+
+	// Construct the MIDI message. 
+
+	u.bData[0] = 0xb0 | (midi_channel_number & 0x0f);  // MIDI status byte 
+	u.bData[1] = controller_num;   // first MIDI data byte 
+	u.bData[2] = controller_val;   // second MIDI data byte 
+	u.bData[3] = 0x00;
+
+	// Send the message. 
+	err = midiOutShortMsg(hmo, u.dwData);
+	return err;
+}
+
 midi_err_t midis::MidiOutStream::SendController(
 	controller_num_t controller_num
 	, controller_val_t controller_val

@@ -3,7 +3,6 @@
 
 #include "midi_sender.h"
 
-#define PLTCC_H_DONT_CLEANUP 1
 #include "pitch_and_level_to_controller_converter.h"
 
 using namespace pltcc;
@@ -12,45 +11,16 @@ using namespace pltcc;
 
 #include "rapidjson\filestream.h"
 #include "rapidjson\document.h"
-//#include "boost\preprocessor\stringize.hpp"
-//#include "boost\preprocessor\control\expr_if.hpp"
-//#include "boost\preprocessor\comparison\equal.hpp"
-//#include "boost\preprocessor\control\if.hpp"
-//#include "boost\preprocessor\control\iif.hpp"
 
 #include <exception>
 
 using namespace std;
 
-//namespace rj
-//{
-//	using namespace rapidjson;
-//}
-//
-//#define EXTRACT_FROM_JSON_OBJ(t,a,obj_name) \
-//	try{\
-//	GetJsonValue((a), obj_name[BOOST_PP_STRINGIZE(a)]); \
-//	}\
-//	catch (exception& re) { std::cerr << re.what() << std::endl; throw runtime_error("error initializing parameter: " BOOST_PP_STRINGIZE(a)); }\
-//	catch (...) { throw runtime_error("Unknown error parsing parameter: " BOOST_PP_STRINGIZE(a)); }
-//#define EXTRACT_FROM_JSON_OBJ_typevar_tuple(r, obj_name, i, typevar_tuple) \
-//	EXTRACT_FROM_JSON_OBJ(BOOST_PP_TUPLE_ELEM(2,0,typevar_tuple)\
-//	,BOOST_PP_TUPLE_ELEM(2,1,typevar_tuple)\
-//	,obj_name)
-//#define OUTPUT_FIELD(FIELD) \
-//	<< " " BOOST_PP_STRINGIZE(FIELD) " " \
-//	<< FIELD
-//#define OUTPUT_FIELD_typevar_tuple(r,d,i,typevar_tuple) \
-//	OUTPUT_FIELD(BOOST_PP_TUPLE_ELEM(2,1,typevar_tuple))
-//#define OUTPUT_ALL(seq_of_typevar_tuples) \
-//	BOOST_PP_SEQ_FOR_EACH_I(OUTPUT_FIELD_typevar_tuple, 0\
-//	, seq_of_typevar_tuples)
-
 void PitchLevelToMidi::FromRapidJsonObject(rapidjson::Value& obj)
 {
-	pitch_converter.reset(new LinearValueToControllerConverter<float, BYTE>());
+	pitch_converter.reset(new LinearValueConverter<float, BYTE>());
 	pitch_converter->FromRapidJsonObject(obj["pitch_converter"]);
-	level_converter.reset(new LinearValueToControllerConverter<float, BYTE>());
+	level_converter.reset(new LinearValueConverter<float, BYTE>());
 	level_converter->FromRapidJsonObject(obj["level_converter"]);
 	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(PitchLevelToMidi_FIELDS,obj)
 }
@@ -75,22 +45,34 @@ void PitchLevelToMidi::FromJsonFile(char* filename)
 template<typename T>
 void pltcc::Normalizer<T>::FromRapidJsonObject(rapidjson::Value &obj)
 {
-	/*BOOST_PP_SEQ_FOR_EACH_I(\
-		EXTRACT_FROM_JSON_OBJ_typevar_tuple
-		, obj
-		, NORMALIZER_FIELDS)*/
 	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(NORMALIZER_FIELDS,obj)
 }
 
 template<typename T,typename C>
-void ValueToControllerConverter <T, C>::FromRapidJsonObject(rapidjson::Value &obj)
+void ValueConverter <T, C>::FromRapidJsonObject(rapidjson::Value &obj)
 {
 	Normalizer<T>::FromRapidJsonObject(obj);
-	/*BOOST_PP_SEQ_FOR_EACH_I(\
-		EXTRACT_FROM_JSON_OBJ_typevar_tuple
-		, obj
-		, ValueToControllerConverter_FIELDS)*/
-	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(ValueToControllerConverter_FIELDS, obj)
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(ValueConverter_FIELDS, obj)
+}
+
+template<typename T> 
+void ConvertAndSender<T>::FromRapidJsonObject(rapidjson::Value &obj)
+{
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(ConvertAndSender_FIELDS,obj)
+}
+
+void ValueToControllerConverter::FromRapidJsonObject(rapidjson::Value &obj)
+{
+	ValueConverter<float,BYTE>::FromRapidJsonObject(obj);
+	ConvertAndSender::FromRapidJsonObject(obj);
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(ValueToControllerConverter_FIELDS,obj)
+}
+
+void ValueToPitchBendConverter::FromRapidJsonObject(rapidjson::Value &obj)
+{
+	ValueConverter<float, WORD>::FromRapidJsonObject(obj);
+	ConvertAndSender<float>::FromRapidJsonObject(obj);
+	/*INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(ValueToPitchB,obj)*/
 }
 
 template<typename T> 
@@ -114,10 +96,10 @@ template<typename T> std::ostream& operator << (std::ostream& out, Normalizer<T>
 	return out OUTPUT_ALL(NORMALIZER_FIELDS);
 }
 
-template<typename T,typename C> std::ostream& operator << (std::ostream& out, LinearValueToControllerConverter<T,C>& lvtcc)
+template<typename T,typename C> std::ostream& operator << (std::ostream& out, ValueConverter<T,C>& lvtcc)
 {
-	out << (NormalError<T, C>&)lvtcc;
-	return out OUTPUT_ALL(ValueToControllerConverter_FIELDS);
+	out << (Normalizer<T, C>&)lvtcc;
+	return out OUTPUT_ALL(ValueConverter_FIELDS);
 }
 
 void PitchLevelToMidi::Stop()
@@ -143,59 +125,81 @@ void PitchLevelToMidi::Start(std::string midi_out_device_name)
 	Start(midis::GetOutDeviceId(midi_out_device_name));
 }
 
+void ValueToControllerConverter::ConvertAndSend(midis::MidiOutStream &midi_o_s
+	,float value)
+{
+	BYTE c = Convert(value);
+	midi_o_s.SendController(controller_number
+		, c, channel_number);
+}
+
+void ValueToPitchBendConverter::ConvertAndSend(midis::MidiOutStream &midi_o_s
+	, float value)
+{
+	short c = Convert(value);
+	
+	midi_o_s.SendPitchBend(c, channel_number);
+}
+
 void PitchLevelToMidi::ConvertAndSend(float pitch, float level)
 {
 	using namespace std;
-	BYTE c_pitch = pitch_converter->Convert(pitch);
+	/*BYTE c_pitch = pitch_converter->Convert(pitch);
 	BYTE c_level = level_converter->Convert(level);
-	
+	*/
 	if (pitch //pitch may be 0 if detection failed
 		&& send_pitch
-			//&& level >= level_gate
-			)
-		mos.SendController(pitch_coupled_controller_number
-			, c_pitch, channel_number);
+		//&& level >= level_gate
+		)
+	{
+		/*mos.SendController(pitch_coupled_controller_number
+			, c_pitch, channel_number);*/
+		pitch_converter->ConvertAndSend(mos, pitch);
+	}
 	if (send_level)
-		mos.SendController(level_coupled_controller_number
-			, c_level, channel_number);
+	{
+		/*mos.SendController(level_coupled_controller_number
+			, c_level, channel_number);*/
+		level_converter->ConvertAndSend(mos, level);
+	}
 }
-
-void pltcc::InitializeDefaultPitchLevelToMidi(PitchLevelToMidi& p)
-{
-	using namespace std;
-	
-	StandardTypeLinearConverter* pitch_converter =
-		new StandardTypeLinearConverter();
-	pitch_converter->cleave_bottom = true;
-	pitch_converter->cleave_top = true;
-	pitch_converter->logarithmic = true;
-	pitch_converter->maxval = 5000;
-	pitch_converter->minval = 500;
-	pitch_converter->controller_max = 127;
-	pitch_converter->controller_min = 0;
-	p.pitch_converter = shared_ptr<StandardTypeConverter>(pitch_converter);
-
-	StandardTypeLinearConverter* level_converter =
-		new StandardTypeLinearConverter();
-	level_converter->cleave_bottom = true;
-	level_converter->cleave_top = true;
-	level_converter->logarithmic = true;
-	level_converter->maxval = db_to_lin(-1.0);
-	level_converter->minval = db_to_lin(-45.0);
-	level_converter->controller_max = 127;
-	level_converter->controller_min = 0;
-	p.level_converter = shared_ptr<StandardTypeConverter>(level_converter);
-
-	p.send_level = true;
-	p.send_pitch = true;
-
-	//p.level_gate = db_to_lin(-45.0);
-	p.level_coupled_controller_number = 81;
-	p.pitch_coupled_controller_number = 84;
-	p.channel_number = 0;
-
-	p.Start(1);
-}
-
+//
+//void pltcc::InitializeDefaultPitchLevelToMidi(PitchLevelToMidi& p)
+//{
+//	using namespace std;
+//	
+//	StandardTypeLinearConverter* pitch_converter =
+//		new StandardTypeLinearConverter();
+//	pitch_converter->cleave_bottom = true;
+//	pitch_converter->cleave_top = true;
+//	pitch_converter->logarithmic = true;
+//	pitch_converter->maxval = 5000;
+//	pitch_converter->minval = 500;
+//	pitch_converter->controller_max = 127;
+//	pitch_converter->controller_min = 0;
+//	p.pitch_converter = shared_ptr<StandardTypeConverter>(pitch_converter);
+//
+//	StandardTypeLinearConverter* level_converter =
+//		new StandardTypeLinearConverter();
+//	level_converter->cleave_bottom = true;
+//	level_converter->cleave_top = true;
+//	level_converter->logarithmic = true;
+//	level_converter->maxval = db_to_lin(-1.0);
+//	level_converter->minval = db_to_lin(-45.0);
+//	level_converter->controller_max = 127;
+//	level_converter->controller_min = 0;
+//	p.level_converter = shared_ptr<StandardTypeConverter>(level_converter);
+//
+//	p.send_level = true;
+//	p.send_pitch = true;
+//
+//	//p.level_gate = db_to_lin(-45.0);
+//	p.level_coupled_controller_number = 81;
+//	p.pitch_coupled_controller_number = 84;
+//	p.channel_number = 0;
+//
+//	p.Start(1);
+//}
+//
 typedef Normalizer<float> dummy1;
-typedef LinearValueToControllerConverter<float, BYTE> dummy2;
+typedef LinearValueConverter<float, BYTE> dummy2;

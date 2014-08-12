@@ -90,6 +90,14 @@ namespace rj {
 	void GetJsonValue(bool& param, rj::Value &obj);
 	void GetJsonValue(int& param, rj::Value &obj);
 	void GetJsonValue(unsigned char & param, rj::Value &obj);
+	inline void GetJsonValue(short &param,rj::Value &obj)
+	{
+		int temp; GetJsonValue(temp, obj); param = static_cast<short>(temp);
+	}
+	inline void GetJsonValue(unsigned short &param, rj::Value &obj)
+	{
+		int temp; GetJsonValue(temp, obj); param = static_cast<unsigned short>(temp);
+	}
 	void GetJsonValue(float& param, rj::Value &obj);
 	void GetJsonValue(double& param, rj::Value &obj);
 	void GetJsonValue(std::string& param, rj::Value &obj);

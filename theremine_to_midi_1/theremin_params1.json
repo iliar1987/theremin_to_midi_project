@@ -11,10 +11,9 @@
 		"pitch_converter_type" : "pitch_bend",
 		"send_level" : true,
 		"level_converter_type" : "controller",
-		"pitch_coupled_controller_number" : 84,
-		"level_coupled_controller_number" : 81,
 		"channel_number" : 0,
 		"pitch_converter" : {
+			"controller_number" : 84,
 			"cleave_bottom" : true,
 			"cleave_top" : true,
 			"logarithmic" : true,
@@ -24,6 +23,7 @@
 			"controller_min" : 0
 		},
 		"level_converter" : {
+			"controller_number" : 81,
 			"cleave_bottom" : true,
 			"cleave_top" : true,
 			"logarithmic" : true,

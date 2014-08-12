@@ -37,7 +37,11 @@ bool should_stop = false;
 #define GENERAL_PARAMS \
 	((rj::OptionallyLogarithmic<abf::smpl_t>, pitch_detection_silence_level))\
 	((double, preffered_window_size_seconds))\
-	((std::string, pitch_detection_method))
+	((std::string, pitch_detection_method))\
+	((int,update_period_milliseconds))\
+	((std::string,asio_driver_name))\
+	((std::string,midi_device))
+
 struct GeneralParamsStruct
 {
 	DEF_ALL_VARS(GENERAL_PARAMS)
@@ -179,17 +183,26 @@ int main(int argc, char* argv[])
 	general_params.SetParamsFromJsonFile(parameter_file_name);
 	std::cout.precision(3);
 	std::cout.setf(std::ios::fixed, std::ios::floatfield);
-	aslt.StartListening(1.0, al::ASIO_DRIVER_DEFAULT, true);
+	const char* driver_name;
+	if (general_params.asio_driver_name == "default")
+		driver_name = al::ASIO_DRIVER_DEFAULT;
+	else
+		driver_name = general_params.asio_driver_name.c_str();
+	aslt.StartListening(1.0
+		//al::ASIO_DRIVER_DEFAULT
+		, driver_name
+		, true);
 	//aslt.PrintDriverInformation();
 	general_params.sample_rate = aslt.GetSampleRate();
 	general_params.buffer_size = aslt.GetBufferSize();
 	std::cout << "sample rate: " << general_params.sample_rate
 		<< "\tsamples per 100 millisec: " << aslt.NumberOfSamplesPerDeltaT(0.1)
+		<< "\tbuffer size: " << general_params.buffer_size
 #if USING_CIRCULAR_BUFFERS
 		<< "\nCircular buffer size: " << aslt.GetCircBufferSize()
 #endif
 		<< std::endl;
-	unsigned int sleep_period = 50;
+	int &sleep_period = general_params.update_period_milliseconds;
 	InitializePitchDetection(general_params);
 #if USING_CIRCULAR_BUFFERS
 	assert(sizeof(APP_SAMPLE_TYPE) == sizeof(abf::smpl_t));
@@ -261,7 +274,7 @@ int main(int argc, char* argv[])
 		level_linear = abf::aubio_level_lin(fvec);
 #endif
 		std::cout << "\r";
-		std::cout << (double)last_time_milliseconds / 1000.0;
+		std::cout << (double)time_milliseconds / 1000.0;
 		std::cout << "\t" << "Pitch: "
 			<< pitch;
 		std::cout << "\t" << "Level(db): "

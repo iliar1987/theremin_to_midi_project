@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <memory>
+#include <string>
 
 //#include "boost\preprocessor\repetition\repeat.hpp"
 //#include "boost\preprocessor\seq\for_each_i.hpp"
@@ -89,6 +90,8 @@ namespace pltcc
 	((int, level_coupled_controller_number))\
 	((bool,send_pitch))\
 	((bool,send_level))\
+	((std::string,pitch_converter_type))\
+	((std::string,level_converter_type))
 	//((OptionallyLogarithmic<float>, level_gate))
 
 	class PitchLevelToMidi
@@ -105,6 +108,7 @@ namespace pltcc
 		//bool send_pitch, send_level;
 		midis::MidiOutStream mos;
 		void Start(int midi_device_number);
+		void Start(std::string midi_out_device_name);
 		int GetMidiDeviceNumber() { return my_midi_device_number; }
 		void Stop();
 		/*PitchLevelToMidi(std::shared_ptr<StandardTypeConverter> pitch_converter,

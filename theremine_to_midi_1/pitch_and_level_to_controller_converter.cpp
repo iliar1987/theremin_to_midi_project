@@ -138,6 +138,11 @@ void PitchLevelToMidi::Start(int midi_device_number)
 		my_midi_device_number = midi_device_number;
 }
 
+void PitchLevelToMidi::Start(std::string midi_out_device_name)
+{
+	Start(midis::GetOutDeviceId(midi_out_device_name));
+}
+
 void PitchLevelToMidi::ConvertAndSend(float pitch, float level)
 {
 	using namespace std;

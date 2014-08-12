@@ -10,6 +10,27 @@
 
 using namespace midis;
 
+int midis::GetOutDeviceId(const std::string &device_name)
+{
+	unsigned int num_devs = midiOutGetNumDevs();
+	for (unsigned int i = 0; i < num_devs; i++)
+	{
+		std::string this_dev_name = GetOutDeviceName(i);
+		if (this_dev_name == device_name)
+		{
+			return i;
+		}
+	}
+	throw MidiStreamerNoSuchDevice_Exception(device_name);
+}
+
+std::string midis::GetOutDeviceName(int device_id)
+{
+	MIDIOUTCAPS midiout_caps;
+	midiOutGetDevCaps(device_id, &midiout_caps, sizeof(midiout_caps));
+	return std::string(midiout_caps.szPname);
+}
+
 std::string midis::GetMidiErrorMessage(unsigned long err)
 {
 #define BUFFERSIZE 120
@@ -42,6 +63,7 @@ midi_err_t midis::MidiOutStream::OpenStream(device_num_t device_number)
 #endif
 	if (err)
 		return err;
+	return 0;
 }
 
 midi_err_t midis::MidiOutStream::CloseStream()

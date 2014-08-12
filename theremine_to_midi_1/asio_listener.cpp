@@ -866,7 +866,7 @@ void al::AsioListenerManager::TerminateDriver()
 	//DeleteCircularBuffers();
 }
 
-void al::AsioListenerManager::StartListening(double buffer_time_length,char* asio_driver_name,bool print_driver_information)
+void al::AsioListenerManager::StartListening(double buffer_time_length,const char* asio_driver_name,bool print_driver_information)
 {
 	if (IsAlreadyListening())
 	{
@@ -875,7 +875,7 @@ void al::AsioListenerManager::StartListening(double buffer_time_length,char* asi
 	}
 	if ( asio_driver_name == ASIO_DRIVER_DEFAULT )
 		asio_driver_name = ASIO_DEFAULT_DRIVER_NAME;
-	if (!loadAsioDriver (asio_driver_name))
+	if (!loadAsioDriver (const_cast<char*>(asio_driver_name)))
 	{
 		std::cerr<<"Couldn't load driver"<<std::endl;
 		throw al::ASIO_Exception(0,"Couldn't load driver");

@@ -104,7 +104,7 @@ public:
 	bool IsAlreadyListening();
 	void StartListening(
 		double buffer_time_length
-		, char* asio_driver_name = ASIO_DRIVER_DEFAULT
+		, const char* asio_driver_name = ASIO_DRIVER_DEFAULT
 		, bool print_driver_information = false
 		);
 	void StopListeningAndTerminate();

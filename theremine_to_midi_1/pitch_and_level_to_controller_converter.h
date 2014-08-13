@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <map>
 
 #include <exception>
 
@@ -17,6 +18,13 @@ namespace pltcc
 	static const short PITCH_BEND_MAX = 0x1fff;
 	static const BYTE CONTROLLER_MIN = 0;
 	static const BYTE CONTROLLER_MAX = 127;
+
+	enum converter_input_type_enum
+	{
+		converter_type_pitch,
+		converter_type_level,
+		converter_type_invalid
+	};
 
 	using namespace rj;
 
@@ -137,7 +145,7 @@ namespace pltcc
 	};
 
 #define ConvertAndSender_FIELDS \
-	((int,channel_number))
+	((int, channel_number))((bool,send))
 		template<typename T> class ConvertAndSender
 			: public virtual RapidJsonInitializable
 		{
@@ -194,57 +202,41 @@ namespace pltcc
 	/*typedef ValueToControllerConverter<float,BYTE> StandardTypeConverter;
 	typedef LinearValueToControllerConverter<float, BYTE> StandardTypeLinearConverter;
 */
-#define PitchLevelToMidi_FIELDS \
-	((bool,send_pitch))\
-	((bool,send_level))\
-	((std::string,pitch_converter_type))\
-	((std::string,level_converter_type))
-	//((OptionallyLogarithmic<float>, level_gate))
+	struct ConverterWithType
+	{
+		ConvertAndSender<float>* converter;
+		converter_input_type_enum converter_input_type;
+		ConverterWithType() 
+		{ converter = 0;
+		converter_input_type = converter_type_invalid; }
+	};
+//#define PitchLevelToMidi_FIELDS \
+//	((std::string,pitch_converter_type))\
+//	((std::string,level_converter_type))
+//	//((OptionallyLogarithmic<float>, level_gate))
 
 	class PitchLevelToMidi
 		: public virtual RapidJsonInitializable
 	{
-		int my_midi_device_number;
-		ConvertAndSender<float>* pitch_converter=0;
-		ConvertAndSender<float>* level_converter=0;
+		typedef std::map<int, ConverterWithType> ConverterContainer;
+		ConverterContainer converters;
 	public:
 		~PitchLevelToMidi()
 		{
-			if (pitch_converter) delete pitch_converter;
-			if (level_converter) delete level_converter;
+			for (ConverterContainer::iterator it
+				= converters.begin()
+				; it != converters.end()
+				; it++)
+					if (it->second.converter)
+						delete (it->second.converter);
 		}
-		DEF_ALL_VARS(PitchLevelToMidi_FIELDS)
-		/*int channel_number,
-			pitch_coupled_controller_number,
-			level_coupled_controller_number;
-		float level_gate;*/
-		//bool send_pitch, send_level;
-		midis::MidiOutStream mos;
-		/*void Start(int midi_device_number);
-		void Start(std::string midi_out_device_name);*/
-		int GetMidiDeviceNumber() { return my_midi_device_number; }
-		//void Stop();
-		/*PitchLevelToMidi(std::shared_ptr<StandardTypeConverter> pitch_converter,
-		std::shared_ptr<StandardTypeConverter> level_converter,
-		int channel_number,
-		int pitch_coupled_controller_number,
-		int level_coupled_controller_number)
-		: pitch_converter(pitch_converter), level_converter(level_converter)
-		, channel_number(channel_number)
-		, pitch_coupled_controller_number(pitch_coupled_controller_number)
-		, level_coupled_controller_number(level_coupled_controller_number)
-		{}*/
-		
-		/*virtual ~PitchLevelToMidi()
-		{
-			Stop();
-		}*/
+		void ToggleByKey(char key);
+	//	DEF_ALL_VARS(PitchLevelToMidi_FIELDS)
 		virtual void ConvertPitchLevelAndSend(midis::MidiOutStream &mos, float pitch, float level);
 		virtual void FromRapidJsonObject( rapidjson::Value &obj);
 		virtual void FromJsonFile(char* filename);
 	};
 
-//	void InitializeDefaultPitchLevelToMidi(PitchLevelToMidi& p);
 }
 
 #include "fancy_json_macros.h"

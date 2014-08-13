@@ -9,13 +9,13 @@
 	{
 		"types":
 		{
-			1 : ["pitch","pitch_bend"],
-			2 : ["level","controller"],
-			3 : ["pitch","controller"]
+			"1" : ["pitch","pitch_bend"],
+			"2" : ["level","controller"],
+			"3" : ["pitch","controller"]
 		},
-		"converters":
+		"converter_parameters":
 		 {
-			 1:{
+			 "1":{
 				"send" : true,
 				"channel_number" : 0,
 				"cleave_bottom" : true,
@@ -26,7 +26,7 @@
 				"controller_max" : "max",
 				"controller_min" : "min"
 			},
-			2:{
+			"2":{
 				"send" : true,
 				"channel_number" : 0,
 				"controller_number" : 81,
@@ -37,8 +37,8 @@
 				"minval" : {"db" : -60},
 				"controller_max" : 127,
 				"controller_min" : 0
-			}
-			3:{
+			},
+			"3":{
 				"send" : true,
 				"channel_number" : 0,
 				"controller_number" : 84,

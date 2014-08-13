@@ -59,6 +59,7 @@ void GeneralParamsStruct::SetParamsFromJsonFile(char *json_file_name)
 	if (err)
 	{
 		std::cerr << "error opening file " << err << std::endl;
+		throw std::runtime_error("can't open parameters file");
 	}
 	rj::FileStream fs(f);
 	rj::Document jsonobj;
@@ -143,17 +144,8 @@ public:
 		}
 		else if (key_seq.size() == 1 && key_seq[0] == 't')
 		{
-			switch (key)
-			{
-			case 'p':
-				p_t->send_pitch = !p_t->send_pitch;
-				key_seq.clear();
-				break;
-			case 'l':
-				p_t->send_level = !p_t->send_level;
-				key_seq.clear();
-				break;
-			}
+			p_t->ToggleByKey(key);
+			key_seq.clear();
 		}
 		
 	}

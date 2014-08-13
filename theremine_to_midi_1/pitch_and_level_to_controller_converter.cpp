@@ -6,13 +6,15 @@
 #include "pitch_and_level_to_controller_converter.h"
 
 #include <iostream>
-
+#include <sstream>
 #include "rapidjson\filestream.h"
 #include "rapidjson\document.h"
 
 #include <exception>
 
 #include <cstring>
+
+#include "boost/lexical_cast.hpp"
 
 //damn templates
 //template<typename C>
@@ -97,14 +99,89 @@ ConvertAndSender<float>* NewFromType(const std::string &conv_type)
 
 void PitchLevelToMidi::FromRapidJsonObject(rapidjson::Value& obj)
 {
-	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(PitchLevelToMidi_FIELDS, obj)
-
-	pitch_converter = NewFromType(pitch_converter_type);
-	pitch_converter->FromRapidJsonObject(obj["pitch_converter"]);
-	level_converter=NewFromType(level_converter_type);
-	level_converter->FromRapidJsonObject(obj["level_converter"]);
+	//INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(PitchLevelToMidi_FIELDS, obj)
+	rj::Value& types = obj["types"];
+	if (!types.IsObject())
+	{
+		throw runtime_error("'types' should be object");
+	}
+	rj::Value& converter_parameters = obj["converter_parameters"];
+	if (!converter_parameters.IsObject())
+	{
+		throw runtime_error("'converter_parameters' should be object");
+	}
+	for (rj::Value::MemberIterator it
+		= types.MemberBegin()
+		; it != types.MemberEnd()
+		; it++)
+	{
+		//const char* converter_num_str = it->name.GetString();
+		int converter_num = it->name.GetInt();
+		if (!converter_parameters.HasMember(rj::Value(converter_num)))
+		{
+			std::ostringstream s;
+			s << "missing converter params for converter number: "
+				<< converter_num;
+			throw std::runtime_error(s.str());
+		}
+		ConverterWithType& this_converter = converters[converter_num];
+		const rj::Value& input_type_var = it->value[rj::Value(int(0))];
+		const rj::Value& output_type_var = it->value[rj::Value(int(0))];
+		const char* name_of_input_type = input_type_var.GetString();
+		const char* name_of_output_type = output_type_var.GetString();
+		if (!strcmpi(name_of_input_type, "pitch"))
+			this_converter.converter_input_type = converter_type_pitch;
+		else if (!strcmpi(name_of_input_type, "level"))
+			this_converter.converter_input_type = converter_type_pitch;
+		else
+		{
+			this_converter.converter_input_type = converter_type_invalid;
+			std::ostringstream s;
+			s << "bad converter input type"
+				<< converter_num;
+			throw runtime_error(s.str());
+		}
+		this_converter.converter = NewFromType(name_of_output_type);
+		this_converter.converter->FromRapidJsonObject(converter_parameters[converter_num]);
+	}
 }
 
+void PitchLevelToMidi::ToggleByKey(char key)
+{
+	if (key == 'p' || key == 'l')
+	{
+		for (ConverterContainer::iterator it = converters.begin()
+			; it != converters.end()
+			; it++)
+		{
+			if (( it->second.converter_input_type==converter_type_pitch
+				&& key == 'p')
+				||
+				(it->second.converter_input_type == converter_type_level
+				&& key == 'l'))
+			{
+				it->second.converter->send = !it->second.converter->send;
+			}
+		}
+	}
+	else if (key >= '0' && key <= '9')
+	{
+		int converter_number = key - '0';
+		if (converters.find(converter_number)
+			== converters.end())
+		{
+			std::cerr << "bad converter number" << std::endl;
+		}
+		else
+		{
+			converters[converter_number].converter->send = !converters[converter_number].converter->send;
+		}
+	}
+	else
+	{
+		std::cerr << "unknown key pressed" << std::endl;
+	}
+}
 
 void PitchLevelToMidi::FromJsonFile(char* filename)
 {
@@ -229,64 +306,26 @@ void ValueToPitchBendConverter::ConvertAndSend(midis::MidiOutStream &midi_o_s
 
 void PitchLevelToMidi::ConvertPitchLevelAndSend(midis::MidiOutStream &mos,float pitch, float level)
 {
-	//std::cerr << "sending" << std::endl;
 	using namespace std;
-	/*BYTE c_pitch = pitch_converter->Convert(pitch);
-	BYTE c_level = level_converter->Convert(level);
-	*/
-	if (pitch //pitch may be 0 if detection failed
-		&& send_pitch
-		//&& level >= level_gate
-		)
+	
+	for (ConverterContainer::iterator it
+		= converters.begin()
+		; it != converters.end()
+		; it++)
 	{
-		/*mos.SendController(pitch_coupled_controller_number
-			, c_pitch, channel_number);*/
-		pitch_converter->ConvertAndSend(mos, pitch);
-	}
-	if (send_level)
-	{
-		/*mos.SendController(level_coupled_controller_number
-			, c_level, channel_number);*/
-		level_converter->ConvertAndSend(mos, level);
+		if (it->second.converter_input_type == converter_type_pitch)
+		{
+			if (pitch //pitch may be 0 if detection failed
+				&& it->second.converter->send)
+				it->second.converter->ConvertAndSend(mos, pitch);
+		}
+		else if (it->second.converter_input_type == converter_type_level)
+		{
+			if (it->second.converter->send)
+				it->second.converter->ConvertAndSend(mos, level);
+		}
 	}
 }
-//
-//void pltcc::InitializeDefaultPitchLevelToMidi(PitchLevelToMidi& p)
-//{
-//	using namespace std;
-//	
-//	StandardTypeLinearConverter* pitch_converter =
-//		new StandardTypeLinearConverter();
-//	pitch_converter->cleave_bottom = true;
-//	pitch_converter->cleave_top = true;
-//	pitch_converter->logarithmic = true;
-//	pitch_converter->maxval = 5000;
-//	pitch_converter->minval = 500;
-//	pitch_converter->controller_max = 127;
-//	pitch_converter->controller_min = 0;
-//	p.pitch_converter = shared_ptr<StandardTypeConverter>(pitch_converter);
-//
-//	StandardTypeLinearConverter* level_converter =
-//		new StandardTypeLinearConverter();
-//	level_converter->cleave_bottom = true;
-//	level_converter->cleave_top = true;
-//	level_converter->logarithmic = true;
-//	level_converter->maxval = db_to_lin(-1.0);
-//	level_converter->minval = db_to_lin(-45.0);
-//	level_converter->controller_max = 127;
-//	level_converter->controller_min = 0;
-//	p.level_converter = shared_ptr<StandardTypeConverter>(level_converter);
-//
-//	p.send_level = true;
-//	p.send_pitch = true;
-//
-//	//p.level_gate = db_to_lin(-45.0);
-//	p.level_coupled_controller_number = 81;
-//	p.pitch_coupled_controller_number = 84;
-//	p.channel_number = 0;
-//
-//	p.Start(1);
-//}
-//
+
 typedef Normalizer<float> dummy1;
 typedef LinearValueConverter<float, BYTE> dummy2;

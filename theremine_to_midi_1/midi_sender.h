@@ -61,4 +61,6 @@ namespace midis
 		
 	};
 
+	void PrintAvailableOutputDevices(std::ostream &out);
+
 }

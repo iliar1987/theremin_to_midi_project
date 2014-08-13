@@ -29,11 +29,13 @@ public:
 class AutoLocker
 {
 	Lockable& my_lockable;
+	bool success;
 public:
 	AutoLocker(Lockable &lockable, unsigned int time_out)
 		: my_lockable(lockable) {
-		my_lockable.LockAccess(time_out);
+		success = my_lockable.LockAccess(time_out);
 	}
+	bool GetSuccessStatus() { return success; }
 	~AutoLocker() { my_lockable.UnlockAccess(); }
 };
 

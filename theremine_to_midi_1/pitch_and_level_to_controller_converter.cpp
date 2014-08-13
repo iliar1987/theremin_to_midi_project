@@ -5,8 +5,6 @@
 
 #include "pitch_and_level_to_controller_converter.h"
 
-using namespace pltcc;
-
 #include <iostream>
 
 #include "rapidjson\filestream.h"
@@ -14,15 +12,97 @@ using namespace pltcc;
 
 #include <exception>
 
+#include <cstring>
+
+//damn templates
+//template<typename C>
+//void GetJsonValue(pltcc::LimitedType<C> &param, rapidjson::Value &obj)
+//{
+//	if (obj.IsString())
+//		param.operator= (rj::GetJsonString(obj));
+//	else if (obj.IsInt())
+//		param = static_cast<C>(obj.GetInt());
+//	else if (obj.IsDouble())
+//		param = obj.GetDouble();
+//	else
+//		throw std::runtime_error("unknown parameter type");
+//}
+
+#define GETLIMITEDTYPE_JSONVALUE_MACRO(TYPE) \
+	void GetJsonValue(pltcc::LimitedType<TYPE> &param, rapidjson::Value &obj)\
+	{\
+		if (obj.IsString())\
+			param.operator= (rj::GetJsonString(obj));\
+		else if (obj.IsInt())\
+			param = static_cast<TYPE>(obj.GetInt()); \
+		else if (obj.IsDouble())\
+			param = obj.GetDouble();\
+		else\
+			throw std::runtime_error("unknown parameter type");\
+	}
+
+namespace rj
+{
+
+	GETLIMITEDTYPE_JSONVALUE_MACRO(short)
+		GETLIMITEDTYPE_JSONVALUE_MACRO(BYTE)
+}
+#include "fancy_json_macros.h"
+
 using namespace std;
+
+using namespace pltcc;
+
+using namespace rj;
+
+void dummyX()
+{
+	Normalizer<float> n();
+	
+}
+
+template<typename C> LimitedType<C>& LimitedType<C>::operator = (std::string s)
+{
+	if (!strcmpi(s.c_str(),"min"))
+		value = min;
+	else if (!strcmpi(s.c_str(), "max"))
+		value = max;
+	else
+		throw runtime_error("unknown string value");
+	return *this;
+}
+
+template<typename C>
+void GetJsonValue(LimitedType<C> &param, rapidjson::Value &obj)
+{
+	if (obj.IsString())
+		param.operator= (rj::GetJsonString(obj));
+	else if (obj.IsInt())
+		param = static_cast<C>(obj.GetInt());
+	else if (obj.IsDouble())
+		param = obj.GetDouble();
+	else
+		throw std::runtime_error("unknown parameter type");
+}
+
+ConvertAndSender<float>* NewFromType(const std::string &conv_type)
+{
+	if (conv_type == "pitch_bend")
+		return new LinearValueToPitchBendConverter();
+	else if (conv_type == "controller")
+		return new LinearValueToControllerConverter();
+	else
+		throw runtime_error("unknown converter type");
+}
 
 void PitchLevelToMidi::FromRapidJsonObject(rapidjson::Value& obj)
 {
-	pitch_converter.reset(new LinearValueConverter<float, BYTE>());
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(PitchLevelToMidi_FIELDS, obj)
+
+	pitch_converter = NewFromType(pitch_converter_type);
 	pitch_converter->FromRapidJsonObject(obj["pitch_converter"]);
-	level_converter.reset(new LinearValueConverter<float, BYTE>());
+	level_converter=NewFromType(level_converter_type);
 	level_converter->FromRapidJsonObject(obj["level_converter"]);
-	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(PitchLevelToMidi_FIELDS,obj)
 }
 
 
@@ -65,14 +145,16 @@ void ValueToControllerConverter::FromRapidJsonObject(rapidjson::Value &obj)
 {
 	ValueConverter<float,BYTE>::FromRapidJsonObject(obj);
 	ConvertAndSender::FromRapidJsonObject(obj);
-	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(ValueToControllerConverter_FIELDS,obj)
+	INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(ValueToControllerConverter_FIELDS, obj)
+		std::cout << (*this);
 }
 
 void ValueToPitchBendConverter::FromRapidJsonObject(rapidjson::Value &obj)
 {
-	ValueConverter<float, WORD>::FromRapidJsonObject(obj);
+	ValueConverter<float, short>::FromRapidJsonObject(obj);
 	ConvertAndSender<float>::FromRapidJsonObject(obj);
 	/*INITIALIZE_FIELDS_FROM_RAPIDJSON_OBJ(ValueToPitchB,obj)*/
+	std::cout << (*this);
 }
 
 template<typename T> 
@@ -91,46 +173,50 @@ T Normalizer<T>::Normalize(T value)
 		value, minval, maxval);
 }
 
-template<typename T> std::ostream& operator << (std::ostream& out, Normalizer<T>& no)
+template<typename T> std::ostream& pltcc::operator << (std::ostream& out, const Normalizer<T>& no)
 {
-	return out OUTPUT_ALL(NORMALIZER_FIELDS);
+	return out OUTPUT_ALL_OBJ(NORMALIZER_FIELDS,no);
 }
+//
+//template<typename T,typename C> std::ostream& operator << (std::ostream& out, ValueConverter<T,C>& lvtcc)
+//{
+//	out << (Normalizer<T, C>&)lvtcc;
+//	return out OUTPUT_ALL(ValueConverter_FIELDS);
+//}
 
-template<typename T,typename C> std::ostream& operator << (std::ostream& out, ValueConverter<T,C>& lvtcc)
-{
-	out << (Normalizer<T, C>&)lvtcc;
-	return out OUTPUT_ALL(ValueConverter_FIELDS);
-}
+//void PitchLevelToMidi::Stop()
+//{
+//	midis::midi_err_t err = mos.CloseStream();
+//	if (err)
+//		std::cerr << "midi error: "
+//		<< midis::GetMidiErrorMessage(err) << std::endl;
+//}
+//
+//void PitchLevelToMidi::Start(int midi_device_number)
+//{
+//	midis::midi_err_t err = mos.OpenStream(midi_device_number);
+//	if (err)
+//		std::cerr << "midi error: "
+//		<< midis::GetMidiErrorMessage(err) << std::endl;
+//	else
+//		my_midi_device_number = midi_device_number;
+//}
 
-void PitchLevelToMidi::Stop()
-{
-	midis::midi_err_t err = mos.CloseStream();
-	if (err)
-		std::cerr << "midi error: "
-		<< midis::GetMidiErrorMessage(err) << std::endl;
-}
-
-void PitchLevelToMidi::Start(int midi_device_number)
-{
-	midis::midi_err_t err = mos.OpenStream(midi_device_number);
-	if (err)
-		std::cerr << "midi error: "
-		<< midis::GetMidiErrorMessage(err) << std::endl;
-	else
-		my_midi_device_number = midi_device_number;
-}
-
-void PitchLevelToMidi::Start(std::string midi_out_device_name)
-{
-	Start(midis::GetOutDeviceId(midi_out_device_name));
-}
+//void PitchLevelToMidi::Start(std::string midi_out_device_name)
+//{
+//	Start(midis::GetOutDeviceId(midi_out_device_name));
+//}
 
 void ValueToControllerConverter::ConvertAndSend(midis::MidiOutStream &midi_o_s
 	,float value)
 {
 	BYTE c = Convert(value);
-	midi_o_s.SendController(controller_number
+	midis::midi_err_t err = midi_o_s.SendController(controller_number
 		, c, channel_number);
+	if ( err )
+		std::cerr << "sending controller failed " 
+		<< err << "\t" << midis::GetMidiErrorMessage(err)
+		<< std::endl;
 }
 
 void ValueToPitchBendConverter::ConvertAndSend(midis::MidiOutStream &midi_o_s
@@ -141,8 +227,9 @@ void ValueToPitchBendConverter::ConvertAndSend(midis::MidiOutStream &midi_o_s
 	midi_o_s.SendPitchBend(c, channel_number);
 }
 
-void PitchLevelToMidi::ConvertAndSend(float pitch, float level)
+void PitchLevelToMidi::ConvertPitchLevelAndSend(midis::MidiOutStream &mos,float pitch, float level)
 {
+	//std::cerr << "sending" << std::endl;
 	using namespace std;
 	/*BYTE c_pitch = pitch_converter->Convert(pitch);
 	BYTE c_level = level_converter->Convert(level);

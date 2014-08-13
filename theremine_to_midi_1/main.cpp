@@ -45,6 +45,7 @@ bool should_stop = false;
 struct GeneralParamsStruct
 {
 	DEF_ALL_VARS(GENERAL_PARAMS)
+	int midi_device_number;
 	abf::uint_t actual_window_size;
 	unsigned long buffer_size;
 	double sample_rate;
@@ -95,20 +96,22 @@ void PitchCalculationCallbackHandler::AsioCallback(unsigned long time_millisecon
 	}
 	if (!fvec_p)
 		return;
-	analysis_locker.LockAccess(PITCH_ANALYSIS_MUTEX_WAIT_TIME);
-	abf::smpl_t *buff = fvec_p->GetBuff();
-	double normalization_constant = gbuffer.GetNormalizationConstant();
-	for (unsigned int i = 0; i < general_params.buffer_size; i++)
+	if (analysis_locker.LockAccess(PITCH_ANALYSIS_MUTEX_WAIT_TIME))
 	{
-		buff[i] = static_cast<abf::smpl_t>(
-			static_cast<double>((*gbuffer.GetElement(i)))
-			* normalization_constant);
+		abf::smpl_t *buff = fvec_p->GetBuff();
+		double normalization_constant = gbuffer.GetNormalizationConstant();
+		for (unsigned int i = 0; i < general_params.buffer_size; i++)
+		{
+			buff[i] = static_cast<abf::smpl_t>(
+				static_cast<double>((*gbuffer.GetElement(i)))
+				* normalization_constant);
+		}
+		current_pitch = aubio_pitch_p->AubioPitchDo(*fvec_p);
+		current_level = aubio_pitch_p->GetLevel();
+		last_time_milliseconds = time_milliseconds;
+		last_sample_number = current_sample_number;
+		analysis_locker.UnlockAccess();
 	}
-	current_pitch = aubio_pitch_p->AubioPitchDo(*fvec_p);
-	current_level = aubio_pitch_p->GetLevel();
-	last_time_milliseconds = time_milliseconds;
-	last_sample_number=current_sample_number;
-	analysis_locker.UnlockAccess();
 }
 
 void DestroyAll()
@@ -248,14 +251,41 @@ int main(int argc, char* argv[])
 		std::cerr << re.what() << std::endl;
 		return 2;
 	}
-	p.Start(1);
+	midis::MidiOutStream mos;
+	try
+	{
+		general_params.midi_device_number = midis::GetOutDeviceId(general_params.midi_device);
+		std::cerr << std::endl << "midi device number: "
+			<< general_params.midi_device_number
+			<< std::endl;
+	}
+	catch (midis::MidiStreamerNoSuchDevice_Exception &me)
+	{
+		std::cout << "Bad midi device name: "<<me.GetDeviceName() <<". Available devices:" << std::endl;
+		midis::PrintAvailableOutputDevices(std::cout);
+		std::cout << std::endl
+			<< "please enter a device number: ";
+		std::cin >> general_params.midi_device_number;
+	}
+	midis::midi_err_t midierr= mos.OpenStream(1);
+	if (midierr)
+	{
+		std::cerr << "midi error. number: "
+			<< midierr
+			<< "message: "
+			<< midis::GetMidiErrorMessage(midierr)
+			<< std::endl;
+		return -1;
+	}
+	//p.Start(1);
 	//for (int i = 0; i < 50; i++)
 	al::SetCallbackHandler(0, pitch_calculation_callback_handler);
 	std::cout << std::endl;
 	while (1)
 	{
 		Sleep(sleep_period);
-		analysis_locker.LockAccess(sleep_period/2);
+		if (!analysis_locker.LockAccess(sleep_period / 2))
+			continue;
 		float pitch = current_pitch;
 		float level_linear = current_level;
 		float level_db_spl = lin_to_db(level_linear);
@@ -292,7 +322,7 @@ int main(int argc, char* argv[])
 			<< std::endl;
 #endif
 		
-		p.ConvertAndSend(pitch,level_linear);
+		p.ConvertPitchLevelAndSend(mos,pitch,level_linear);
 
 		if (_kbhit())
 		{
@@ -301,7 +331,8 @@ int main(int argc, char* argv[])
 				break;
 		}
 	}
-	p.Stop();
+	//p.Stop();
+	mos.CloseStream();
 	aslt.PrintDebugInformation(std::cout);
 	aslt.StopListeningAndTerminate();
 

@@ -6,6 +6,7 @@
 
 #include "midi_sender.h"
 
+#include <cstring>
 #include <sstream>
 
 using namespace midis;
@@ -16,7 +17,7 @@ int midis::GetOutDeviceId(const std::string &device_name)
 	for (unsigned int i = 0; i < num_devs; i++)
 	{
 		std::string this_dev_name = GetOutDeviceName(i);
-		if (this_dev_name == device_name)
+		if (!strcmpi(this_dev_name.c_str(),device_name.c_str()))
 		{
 			return i;
 		}
@@ -99,7 +100,11 @@ midi_err_t midis::MidiOutStream::SendPitchBend(
 	short pitchbend_value,
 	BYTE channel_number)
 {
+	WORD pitchbend_value_absolute =
+		(WORD)((short)0x2000 + pitchbend_value);
+	
 	midi_err_t err;
+	HMIDIOUT hmo = my_midi_stream;
 
 	//A better solution is the ShortMsg facility
 	union {
@@ -109,9 +114,11 @@ midi_err_t midis::MidiOutStream::SendPitchBend(
 
 	// Construct the MIDI message. 
 
-	u.bData[0] = 0xb0 | (midi_channel_number & 0x0f);  // MIDI status byte 
-	u.bData[1] = controller_num;   // first MIDI data byte 
-	u.bData[2] = controller_val;   // second MIDI data byte 
+
+	u.bData[0] = 0xe0 | (channel_number & 0x0f);  // MIDI status byte 
+	u.bData[1] = pitchbend_value_absolute & 0x007f;   // first MIDI data byte 
+	u.bData[2] = (pitchbend_value_absolute & 0x3f80)
+		>> 7;   // second MIDI data byte 
 	u.bData[3] = 0x00;
 
 	// Send the message. 
@@ -157,4 +164,14 @@ midi_err_t midis::MidiOutStream::SendController(
 	if (err)
 		return err;*/
 
+}
+
+void midis::PrintAvailableOutputDevices(std::ostream &out)
+{
+	unsigned int num_devs = midiOutGetNumDevs();
+	for (unsigned int i = 0; i < num_devs; i++)
+	{
+		std::string this_dev_name = GetOutDeviceName(i);
+		out << i << "\t" << this_dev_name << std::endl;
+	}
 }

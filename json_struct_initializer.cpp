@@ -11,14 +11,21 @@ void rj::GetJsonValue(bool& param, rj::Value &obj)
 	param = obj.GetBool();
 }
 
-void rj::GetJsonValue(int& param, rj::Value &obj)
+//template<> void rj::GetJsonValue(int& param, rj::Value &obj)
+//{
+//	if (!obj.IsInt())
+//		throw(std::runtime_error("variable is not int"));
+//	param = obj.GetInt();
+//}
+
+void rj::GetJsonValue(unsigned char & param, rj::Value &obj)
 {
 	if (!obj.IsInt())
 		throw(std::runtime_error("variable is not int"));
 	param = obj.GetInt();
 }
 
-void rj::GetJsonValue(unsigned char & param, rj::Value &obj)
+void rj::GetJsonValue(int & param, rj::Value &obj)
 {
 	if (!obj.IsInt())
 		throw(std::runtime_error("variable is not int"));
@@ -45,9 +52,18 @@ void rj::GetJsonValue(double& param, rj::Value &obj)
 		throw(std::runtime_error("variable is of wrong type"));
 }
 
-template<typename T> void rj::GetJsonValue(rj::OptionallyLogarithmic<T> &param, rj::Value &obj)
+template<typename R> void rj::GetJsonValue(rj::OptionallyLogarithmic<R> &param, rj::Value &obj)
 {
 	param.FromRapidJsonObject(reinterpret_cast<rapidjson::Value&>(obj));
+}
+
+std::string rj::GetJsonString(rj::Value & obj)
+{
+	int len = obj.GetStringLength();
+	const char *str = obj.GetString();
+	std::string s;
+	s.replace(0, len, str);
+	return s;
 }
 
 void rj::GetJsonValue(std::string& param, rj::Value &obj)
@@ -56,9 +72,7 @@ void rj::GetJsonValue(std::string& param, rj::Value &obj)
 	{
 		throw std::runtime_error("variable is of wrong type");
 	}
-	int len = obj.GetStringLength();
-	const char *str = obj.GetString();
-	param.replace(0,len,str);
+	param = rj::GetJsonString(obj);
 }
 
 

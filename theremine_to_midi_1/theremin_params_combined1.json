@@ -1,0 +1,55 @@
+{
+	"asio_driver_name" : "Generic Low Latency ASIO Driver",
+	"midi_device" : "loopMIDI port",
+	"pitch_detection_method" : "fcomb",
+	"pitch_detection_silence_level" : {"db" : -72},
+	"preffered_window_size_seconds" : 0.3,
+	"update_period_milliseconds" : 10,
+	"pitch_level_to_controller_params" :
+	{
+		"types":
+		{
+			1 : ["pitch","pitch_bend"],
+			2 : ["level","controller"],
+			3 : ["pitch","controller"]
+		},
+		"converters":
+		 {
+			 1:{
+				"send" : true,
+				"channel_number" : 0,
+				"cleave_bottom" : true,
+				"cleave_top" : true,
+				"logarithmic" : true,
+				"maxval" : {"linear":1500},
+				"minval" : {"linear":100},
+				"controller_max" : "max",
+				"controller_min" : "min"
+			},
+			2:{
+				"send" : true,
+				"channel_number" : 0,
+				"controller_number" : 81,
+				"cleave_bottom" : true,
+				"cleave_top" : true,
+				"logarithmic" : true,
+				"maxval" : {"db" : -1},
+				"minval" : {"db" : -60},
+				"controller_max" : 127,
+				"controller_min" : 0
+			}
+			3:{
+				"send" : true,
+				"channel_number" : 0,
+				"controller_number" : 84,
+				"cleave_bottom" : true,
+				"cleave_top" : true,
+				"logarithmic" : true,
+				"maxval" : {"linear":1500},
+				"minval" : {"linear":100},
+				"controller_max" : "max",
+				"controller_min" : "min"
+			}
+		}
+	}
+ }

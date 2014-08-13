@@ -149,9 +149,11 @@ std::map<int,AsioCallbackHandler*> callback_handlers;
 void al::SetCallbackHandler(int channel_number
 	, al::AsioCallbackHandler &handler)
 {
-	callback_handlers_container_lock.LockAccess(100);
-	callback_handlers[channel_number] = &handler;
-	callback_handlers_container_lock.UnlockAccess();
+	if (callback_handlers_container_lock.LockAccess(100))
+	{
+		callback_handlers[channel_number] = &handler;
+		callback_handlers_container_lock.UnlockAccess();
+	}
 }
 
 #endif
@@ -394,6 +396,11 @@ ASIOTime *bufferSwitchTimeInfo(ASIOTime *timeInfo, long index, ASIOBool processN
 	}
 #endif
 	AutoLocker hickup_auto_locker(hickup_lockable, CIRC_BUFFER_MUTEX_WAIT_TIME);
+	if (!hickup_auto_locker.GetSuccessStatus())
+	{
+		std::cerr << "Couldn't lock access to process input from asio driver" << std::endl;
+		return 0;
+	}
 	static long processedSamples = 0;
 
 	// store the timeInfo for later use
@@ -473,16 +480,18 @@ ASIOTime *bufferSwitchTimeInfo(ASIOTime *timeInfo, long index, ASIOBool processN
 			ah::GenericBuffer* gbuff = ah::NewGenericBufferFromASIO_Sample_T(
 				asioDriverInfo.bufferInfos[i].buffers[index],
 				asioDriverInfo.channelInfos[i].type);
-			callback_handlers_container_lock.LockAccess(LARGE_MUTEX_WAIT_TIME);
-			if (callback_handlers.find(i) != callback_handlers.end())
+			if (callback_handlers_container_lock.LockAccess(LARGE_MUTEX_WAIT_TIME))
 			{
-				callback_handlers[i]->AsioCallback(
-					(unsigned long)this_time / 1000000,
-					this_sample_number,
-					buffSize,
-					*gbuff);
+				if (callback_handlers.find(i) != callback_handlers.end())
+				{
+					callback_handlers[i]->AsioCallback(
+						(unsigned long)this_time / 1000000,
+						this_sample_number,
+						buffSize,
+						*gbuff);
+				}
+				callback_handlers_container_lock.UnlockAccess();
 			}
-			callback_handlers_container_lock.UnlockAccess();
 #endif
 #if USING_CIRCULAR_BUFFERS
 			std::shared_ptr<ah::GenericBuffer> gbuff = ah::NewGenericBufferFromASIO_Sample_T(

@@ -139,7 +139,15 @@ namespace pltcc
 		C Convert(T value)
 		{
 			T n = Normalize(value);
-			return static_cast<C>(std::round(n * (controller_max - controller_min) + controller_min));
+			T x = std::round(n * (controller_max - controller_min) + controller_min);
+			C c;
+			if (x < controller_min.absolute_min)
+				c = controller_min.absolute_min;
+			else if (x > controller_max.absolute_max)
+				c = controller_max.absolute_max;
+			else
+				c = static_cast<C>(x);
+			return c;
 		}
 		virtual ~LinearValueConverter() {}
 	};
@@ -149,10 +157,14 @@ namespace pltcc
 		template<typename T> class ConvertAndSender
 			: public virtual RapidJsonInitializable
 		{
+		protected:
+			int last_sent_value;
 		public:
 			DEF_ALL_VARS(ConvertAndSender_FIELDS)
 			virtual void ConvertAndSend(midis::MidiOutStream &midi_o_s,T value)=0;
 			virtual void FromRapidJsonObject(rj::Value &obj);
+			virtual int LastSentValue() { return last_sent_value; }
+			virtual std::string GetOutputType()=0;
 			virtual ~ConvertAndSender() {}
 		};
 
@@ -171,6 +183,7 @@ namespace pltcc
 		}
 		virtual void FromRapidJsonObject(rj::Value &obj);
 		void ConvertAndSend(midis::MidiOutStream &midi_o_s, float value);
+		std::string GetOutputType();
 		virtual ~ValueToControllerConverter() {}
 	};
 
@@ -188,6 +201,10 @@ namespace pltcc
 		ValueToPitchBendConverter()
 		{
 			ValueConverter::SetAbsoluteLimits(PITCH_BEND_MIN, PITCH_BEND_MAX);
+		}
+		std::string GetOutputType()
+		{
+			return std::string("PB");
 		}
 		virtual void FromRapidJsonObject(rj::Value &obj);
 		void ConvertAndSend(midis::MidiOutStream &midi_o_s, float value);
@@ -230,6 +247,7 @@ namespace pltcc
 					if (it->second.converter)
 						delete (it->second.converter);
 		}
+		std::ostream& OutputLastSentValues(std::ostream &out);
 		void ToggleByKey(char key);
 	//	DEF_ALL_VARS(PitchLevelToMidi_FIELDS)
 		virtual void ConvertPitchLevelAndSend(midis::MidiOutStream &mos, float pitch, float level);

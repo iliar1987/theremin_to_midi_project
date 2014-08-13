@@ -115,9 +115,9 @@ void PitchLevelToMidi::FromRapidJsonObject(rapidjson::Value& obj)
 		; it != types.MemberEnd()
 		; it++)
 	{
-		//const char* converter_num_str = it->name.GetString();
-		int converter_num = it->name.GetInt();
-		if (!converter_parameters.HasMember(rj::Value(converter_num)))
+		const char* converter_num_str = it->name.GetString();
+		int converter_num = boost::lexical_cast<int>(converter_num_str);
+		if (!converter_parameters.HasMember(converter_num_str) )
 		{
 			std::ostringstream s;
 			s << "missing converter params for converter number: "
@@ -125,14 +125,14 @@ void PitchLevelToMidi::FromRapidJsonObject(rapidjson::Value& obj)
 			throw std::runtime_error(s.str());
 		}
 		ConverterWithType& this_converter = converters[converter_num];
-		const rj::Value& input_type_var = it->value[rj::Value(int(0))];
-		const rj::Value& output_type_var = it->value[rj::Value(int(0))];
+		const rj::Value& input_type_var = *it->value.Begin();
+		const rj::Value& output_type_var = it->value[int(1)];
 		const char* name_of_input_type = input_type_var.GetString();
 		const char* name_of_output_type = output_type_var.GetString();
 		if (!strcmpi(name_of_input_type, "pitch"))
 			this_converter.converter_input_type = converter_type_pitch;
 		else if (!strcmpi(name_of_input_type, "level"))
-			this_converter.converter_input_type = converter_type_pitch;
+			this_converter.converter_input_type = converter_type_level;
 		else
 		{
 			this_converter.converter_input_type = converter_type_invalid;
@@ -142,7 +142,7 @@ void PitchLevelToMidi::FromRapidJsonObject(rapidjson::Value& obj)
 			throw runtime_error(s.str());
 		}
 		this_converter.converter = NewFromType(name_of_output_type);
-		this_converter.converter->FromRapidJsonObject(converter_parameters[converter_num]);
+		this_converter.converter->FromRapidJsonObject(converter_parameters[converter_num_str]);
 	}
 }
 
@@ -288,6 +288,7 @@ void ValueToControllerConverter::ConvertAndSend(midis::MidiOutStream &midi_o_s
 	,float value)
 {
 	BYTE c = Convert(value);
+	last_sent_value = c;
 	midis::midi_err_t err = midi_o_s.SendController(controller_number
 		, c, channel_number);
 	if ( err )
@@ -300,8 +301,15 @@ void ValueToPitchBendConverter::ConvertAndSend(midis::MidiOutStream &midi_o_s
 	, float value)
 {
 	short c = Convert(value);
-	
+	last_sent_value = c;
 	midi_o_s.SendPitchBend(c, channel_number);
+}
+
+std::string ValueToControllerConverter::GetOutputType()
+{
+	ostringstream s;
+	s << "CC" << this->controller_number;
+	return s.str();
 }
 
 void PitchLevelToMidi::ConvertPitchLevelAndSend(midis::MidiOutStream &mos,float pitch, float level)
@@ -315,9 +323,12 @@ void PitchLevelToMidi::ConvertPitchLevelAndSend(midis::MidiOutStream &mos,float 
 	{
 		if (it->second.converter_input_type == converter_type_pitch)
 		{
-			if (pitch //pitch may be 0 if detection failed
+			if (pitch > 0.0 //pitch may be 0 if detection failed
 				&& it->second.converter->send)
+			{
+				//std::cerr << "sent pitch" << pitch << std::endl;
 				it->second.converter->ConvertAndSend(mos, pitch);
+			}
 		}
 		else if (it->second.converter_input_type == converter_type_level)
 		{
@@ -325,6 +336,37 @@ void PitchLevelToMidi::ConvertPitchLevelAndSend(midis::MidiOutStream &mos,float 
 				it->second.converter->ConvertAndSend(mos, level);
 		}
 	}
+}
+
+std::ostream& PitchLevelToMidi::OutputLastSentValues(std::ostream &out)
+{
+	for (ConverterContainer::iterator it
+		= converters.begin()
+		; it != converters.end()
+		; it++)
+	{
+		ConvertAndSender<float>* thisconverter = it->second.converter;
+		char input_type_char;
+		switch (it->second.converter_input_type)
+		{
+		case converter_type_pitch:
+			input_type_char = 'p';
+			break;
+		case converter_type_level:
+			input_type_char = 'l';
+			break;
+		default:
+			input_type_char = '?';
+			break;
+		}
+		out << input_type_char
+			<< "->"
+			<<thisconverter->GetOutputType()
+			<< ":"
+			<< thisconverter->LastSentValue()
+			<< " ";
+	}
+	return out;
 }
 
 typedef Normalizer<float> dummy1;

@@ -17,7 +17,7 @@ class Lockable
 #endif
 	Lockable(const Lockable&);
 protected:
-	bool is_being_deleted;
+	volatile bool is_being_deleted;
 	virtual bool PrivateLock(unsigned int timeout);
 public:
 	virtual bool LockAccess(unsigned int time_out);

@@ -32,7 +32,7 @@ al::AsioListenerManager aslt;
 
 //double sample_rate;
 pltcc::PitchLevelToMidi * p_t=0;
-bool should_stop = false;
+volatile bool should_stop = false;
 
 #define GENERAL_PARAMS \
 	((rj::OptionallyLogarithmic<abf::smpl_t>, pitch_detection_silence_level))\
@@ -68,10 +68,10 @@ void GeneralParamsStruct::SetParamsFromJsonFile(char *json_file_name)
 }
 
 
-abf::smpl_t current_pitch=0;
-abf::smpl_t current_level=0;
-unsigned long last_time_milliseconds=0;
-al::SAMPLE_NUMBER_TYPE last_sample_number=0;
+volatile abf::smpl_t current_pitch=0;
+volatile abf::smpl_t current_level=0;
+volatile unsigned long last_time_milliseconds=0;
+volatile al::SAMPLE_NUMBER_TYPE last_sample_number=0;
 
 static const int PITCH_ANALYSIS_MUTEX_WAIT_TIME = 10;
 Lockable analysis_locker;
@@ -300,11 +300,13 @@ int main(int argc, char* argv[])
 		std::cout << "\t" << "Pitch: "
 			<< pitch;
 		std::cout << "\t" << "Level(db): "
-			<< level_db_spl;
+			<< level_db_spl
+			<< " ";
+		p.OutputLastSentValues(std::cout);
 		//std::cout.setf(std::ios::scientific | std::ios::dec | std::ios::floatfield);
 		/*std::cout << "\t" << "Level(l): "
 			<< level_linear;*/
-		printf("\tLevel(l): %.3g",level_linear);
+		//printf("\tLevel(l): %.3g",level_linear);
 		//std::cout.unsetf(std::ios::scientific);
 #if RECORDING
 		outf << time_milliseconds

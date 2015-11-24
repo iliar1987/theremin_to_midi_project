@@ -12,6 +12,13 @@
 
 namespace midis
 {
+	static const short PITCH_BEND_MIN = -0x2000;
+	static const short PITCH_BEND_MAX = 0x1fff;
+	static const unsigned short PITCH_BEND_ABSOULTE_MIN = 0x0000;
+	static const unsigned short PITCH_BEND_ABSOULTE_MAX = 0x3fff;
+	static const unsigned short PITCH_BEND_ABSOULTE_ZERO = 0x2000;
+	static const BYTE CONTROLLER_MIN = 0;
+	static const BYTE CONTROLLER_MAX = 127;
 
 	class MidiStreamerNoSuchDevice_Exception : std::runtime_error
 	{

@@ -14,11 +14,6 @@
 
 namespace pltcc
 {
-	static const short PITCH_BEND_MIN = -0x2000;
-	static const short PITCH_BEND_MAX = 0x1fff;
-	static const BYTE CONTROLLER_MIN = 0;
-	static const BYTE CONTROLLER_MAX = 127;
-
 	enum converter_input_type_enum
 	{
 		converter_type_pitch,
@@ -179,7 +174,7 @@ namespace pltcc
 		DEF_ALL_VARS(ValueToControllerConverter_FIELDS)
 		ValueToControllerConverter()
 		{
-			ValueConverter::SetAbsoluteLimits(CONTROLLER_MIN, CONTROLLER_MAX);
+			ValueConverter::SetAbsoluteLimits(midis::CONTROLLER_MIN, midis::CONTROLLER_MAX);
 		}
 		virtual void FromRapidJsonObject(rj::Value &obj);
 		void ConvertAndSend(midis::MidiOutStream &midi_o_s, float value);
@@ -200,7 +195,7 @@ namespace pltcc
 	public:
 		ValueToPitchBendConverter()
 		{
-			ValueConverter::SetAbsoluteLimits(PITCH_BEND_MIN, PITCH_BEND_MAX);
+			ValueConverter::SetAbsoluteLimits(midis::PITCH_BEND_MIN, midis::PITCH_BEND_MAX);
 		}
 		std::string GetOutputType()
 		{

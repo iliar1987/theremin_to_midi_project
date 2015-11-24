@@ -33,7 +33,7 @@
 				"cleave_bottom" : true,
 				"cleave_top" : true,
 				"logarithmic" : true,
-				"maxval" : {"db" : -1},
+				"maxval" : {"db" : -9},
 				"minval" : {"db" : -50},
 				"controller_max" : 127,
 				"controller_min" : 0
@@ -45,8 +45,8 @@
 				"cleave_bottom" : true,
 				"cleave_top" : true,
 				"logarithmic" : true,
-				"maxval" : {"linear":1500},
-				"minval" : {"linear":650},
+				"maxval" : {"linear":2600},
+				"minval" : {"linear":190},
 				"controller_max" : "max",
 				"controller_min" : "min"
 			}

@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F953CA32-9852-4649-85C1-2A12F02303DA}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>libaubio</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\build\src\config.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\aubio.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\aubio_priv.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\cvec.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\fmat.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\fvec.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\audio_unit.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\sink.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\sink_apple_audio.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\sink_sndfile.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\sink_wavwrite.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\source.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\source_apple_audio.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\source_avcodec.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\source_sndfile.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\io\source_wavread.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\lvec.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\mathutils.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\musicutils.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\onset\onset.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\onset\peakpicker.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\pitch\pitch.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchfcomb.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchmcomb.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchschmitt.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchspecacf.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchyin.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchyinfft.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\spectral\fft.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\spectral\filterbank.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\spectral\filterbank_mel.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\spectral\mfcc.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\spectral\phasevoc.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\spectral\specdesc.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\spectral\tss.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\synth\sampler.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\synth\wavetable.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\temporal\a_weighting.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\temporal\biquad.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\temporal\c_weighting.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\temporal\filter.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\temporal\resampler.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\tempo\beattracking.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\tempo\tempo.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\types.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\utils\hist.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\utils\parameter.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\utils\scale.h" />
+    <ClInclude Include="..\..\aubio\aubio-0.4.1\src\vecutils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\cvec.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\fmat.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\fvec.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\audio_unit.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\sink.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\sink_apple_audio.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\sink_sndfile.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\sink_wavwrite.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\source.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\source_apple_audio.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\source_avcodec.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\source_sndfile.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\source_wavread.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\io\utils_apple_audio.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\lvec.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\mathutils.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\onset\onset.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\onset\peakpicker.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\pitch\pitch.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchfcomb.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchmcomb.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchschmitt.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchspecacf.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchyin.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\pitch\pitchyinfft.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\spectral\fft.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\spectral\filterbank.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\spectral\filterbank_mel.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\spectral\mfcc.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\spectral\ooura_fft8g.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\spectral\phasevoc.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\spectral\specdesc.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\spectral\statistics.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\spectral\tss.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\synth\sampler.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\synth\wavetable.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\temporal\a_weighting.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\temporal\biquad.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\temporal\c_weighting.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\temporal\filter.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\temporal\resampler.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\tempo\beattracking.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\tempo\tempo.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\utils\hist.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\utils\parameter.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\utils\scale.c" />
+    <ClCompile Include="..\..\aubio\aubio-0.4.1\src\vecutils.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

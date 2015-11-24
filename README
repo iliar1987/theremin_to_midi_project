@@ -1,0 +1,9 @@
+The aim of the project was to create a utility which listens to incoming audio by using an ASIO driver, analyzes the audio in terms of main pitch and volume, and generates MIDI output which depends on these two quantities.
+The MIDI output can then be routed by using the LoopMIDI utility back into a virtual MIDI instrument, which can be used in a Digital Audio Workstation in order to generate music digitally.
+For example, the pitch can be routed to become MIDI controller 90 and the volume to be controller 91. These two controller numbers are then configured in the DAW to control cutoff and resonance of a digital filter as part of a digital synthesizer.
+The source of audio for the theremine to midi utility is supposed to be a theremin, which is a contact-less electronic music instrument which creates a single-pitch audio signal.
+The program has thus far been tested only in working with Steinberg's proprietary "Generic Low Latency ASIO Driver" which comes as part of the installation of Cubase 5.
+
+The analysis of pitch includes the computation of FFT and is performed by using the GPL protected library "aubio" for digital signal processing.
+
+The main project is contained in the directory theremine_to_midi_1
